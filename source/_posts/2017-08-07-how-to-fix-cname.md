@@ -1,6 +1,7 @@
 ---
 title: How to fix CNAME file issue in hexo-deployer-git / 如何解决Hexo Git Deploy之后CNAME文件丢失的问题
 date: 2017-08-07 10:25:33
+tags: Hexo
 ---
 # 问题
 如果用Github Pages搭建博客并且关联到一个自定义域名(如namecheap之类的域名提供商)时，一般都需要在Github Pages仓库的根目录下建议一个**CNAME**文件，文件内容是自定义域名。
