@@ -80,3 +80,5 @@ deploy:
   type: git
   repository: https://github.com/yellowb/yellowb.github.io.git
   branch: master
+
+youyan_uid: 2140951
