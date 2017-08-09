@@ -273,6 +273,270 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2017/08/09/2017-08-09-java-version-has-value-1.8-but-1.7-is-required/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="YellowB">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="YellowB's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/08/09/2017-08-09-java-version-has-value-1.8-but-1.7-is-required/" itemprop="url">Registry key Error Java version has value '1.8', but '1.7' is required</a></h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-09T11:27:33+08:00">
+                2017-08-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h1><p>公司最近把Java开发环境升级到Java8, 安装完JDK之后发现在cmd下运行java命令会报如下错误：</p>
+<blockquote>
+<p>Error: Registry key ‘Software\JavaSoft\Java Runtime Environment’\CurrentVersion’<br>has value ‘1.8’, but ‘1.7’ is required.<br>Error: could not find java.dll<br>Error: Could not find Java SE Runtime Environment.</p>
+</blockquote>
+<p>本地环境：</p>
+<blockquote>
+<p>OS：Win7_x64<br>JDK：JDK8u131_x64JDK：JDK8u131_x64</p>
+</blockquote>
+<h1 id="解决办法"><a href="#解决办法" class="headerlink" title="解决办法"></a>解决办法</h1><ol>
+<li>把环境变量<strong>Path</strong>中的这一项（若存在）删掉：<code>C:\ProgramData\Oracle\Java\javapath</code> 貌似这一项是公司预装的JRE自动升级所存放的地方。</li>
+<li>把<strong>C:\Windows\System32</strong>目录下的<code>java.exe</code>, <code>javaw.exe</code> 和 <code>javaws.exe</code> 删除。</li>
+<li>重新打开一个新的cmd, 验证结果。</li>
+</ol>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2017/08/08/2017-08-08-make-js-object-constant/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="YellowB">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="YellowB's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/08/08/2017-08-08-make-js-object-constant/" itemprop="url">如何防止JavaScript属性被修改?</a></h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-08T23:25:33+08:00">
+                2017-08-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>前段时间公司小伙伴问一个问题:</p>
+<p>他在写前端JS时, 想防止用户对他挂到全局对象下的一个属性进行修改, 比如window对象下面挂了个属性”abc”, 其值是一些比较重要的东西, 为了防止用户通过诸如浏览器控制台之类的途径对这个值进行修改, 有什么办法? (=_= 先不讨论他这种设计是否合理, 只探讨在此场景下的解决方案)</p>
+<h1 id="方法-常量属性"><a href="#方法-常量属性" class="headerlink" title="方法 - 常量属性"></a>方法 - 常量属性</h1><p>在对象上添加新属性的方法除了诸如<code>obj.abc = 123;</code>之类的赋值语句之外, 还可以用<code>Object.defineProperty</code>函数, 其输入参数为:<br><figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">Object</span>.defineProperty(</div><div class="line">	<span class="built_in">window</span>,   <span class="comment">//目标对象</span></div><div class="line">	<span class="string">"abc"</span>,       <span class="comment">//属性名</span></div><div class="line">	&#123;               <span class="comment">//属性描述符</span></div><div class="line">		value: <span class="number">123</span>, </div><div class="line">		writable: <span class="literal">false</span>, </div><div class="line">		configurable: <span class="literal">false</span>,</div><div class="line">		enumerable: <span class="literal">true</span></div><div class="line">	&#125;</div><div class="line">);</div></pre></td></tr></table></figure></p>
+<p>上面代码中最后一个参数为一个对象, 其中有一些配置项, 除了<code>value</code>之外, 其余都是控制访问行为的. </p>
+<ol>
+<li>其中<code>writable</code>属性表示是否可以修改属性的值. 如果执行<code>window.abc =999;</code>,则这条语句在非严格模式下会静默失败, 严格模式下会抛出TypeError.</li>
+<li>其中<code>configurable</code>属性表示这个属性是否是可配置的. 也即是说是否允许<strong>修改这个属性的属性描述符</strong>(通过<code>Object.defineProperty</code>函数)或<strong>删除这个属性</strong>(通过<code>delete</code>)</li>
+<li><code>enumerable</code>属性表示属性是否可被枚举, 也就是是否会出现在<code>for...in...</code>中.</li>
+</ol>
+<p>综上所述, 通过把<code>writable</code>属性和<code>configurable</code>属性设置为false, 就可以达到防止用户修改的目的.</p>
+<h1 id="额外的一些东西"><a href="#额外的一些东西" class="headerlink" title="额外的一些东西"></a>额外的一些东西</h1><p>Object也提供了另外一些有用的函数, 使得我们可以不仅仅把对象的属性变成常量, 而且可以把对象本身变成不可变.</p>
+<h2 id="1-Object-preventExtensions函数"><a href="#1-Object-preventExtensions函数" class="headerlink" title="1. Object.preventExtensions函数"></a>1. Object.preventExtensions函数</h2><p><code>Object.preventExtensions</code>可以使得一个对象不能被添加新属性, 原有属性则会被保留.<br><figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">var</span> obj = &#123;<span class="attr">a</span> : <span class="number">2</span>&#125;;</div><div class="line"><span class="built_in">Object</span>.preventExtensions(obj);</div><div class="line">obj.b = <span class="number">3</span>;</div><div class="line">obj.b;   <span class="comment">//undefined</span></div></pre></td></tr></table></figure></p>
+<h2 id="2-Object-freeze函数"><a href="#2-Object-freeze函数" class="headerlink" title="2. Object.freeze函数"></a>2. Object.freeze函数</h2><p><code>Object.freeze</code>会”冻结”一个对象, 除了<code>Object.preventExtensions</code>的效果外, 它还会把所有属性的<code>writable</code>属性和<code>configurable</code>属性设置为false. 这样一来就既不能修改对象原有属性也不能删除对象原有属性了. 它提供了最高级别的不可变性, 但要注意冻结的只是对象的属性, 至于这个属性所引用的另一个对象是不受影响的.</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yellowb.me/2017/08/07/2017-08-07-how-to-fix-cname/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -536,10 +800,14 @@
 
       <section class="site-overview sidebar-panel sidebar-panel-active">
         <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
-          <img class="site-author-image" itemprop="image"
-               src="/uploads/avatar.jpg"
-               alt="YellowB" />
-          <p class="site-author-name" itemprop="name">YellowB</p>
+          <a href="/about">
+            <img class="site-author-image" itemprop="image"
+                 src="/uploads/avatar.jpg"
+                 alt="YellowB" />
+          </a>
+          <a href="/about">
+            <p class="site-author-name" itemprop="name">YellowB</p>
+          </a>
            
               <p class="site-description motion-element" itemprop="description"></p>
            
@@ -549,7 +817,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives/">
-                <span class="site-state-item-count">2</span>
+                <span class="site-state-item-count">4</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>
@@ -562,7 +830,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">2</span>
+                <span class="site-state-item-count">5</span>
                 <span class="site-state-item-name">tags</span>
               </a>
             </div>
