@@ -271,6 +271,157 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2017/09/08/2017-09-08-eternal-tdz-in-chrome-console/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="YellowB">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="YellowB's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/09/08/2017-09-08-eternal-tdz-in-chrome-console/" itemprop="url">Chrome Console里的永恒死区/Eternal TDZ in Chrome Console</a></h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-09-08T14:52:33+08:00">
+                2017-09-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>前段时间自己玩的时候, 发现如果在Chrome控制台依次输入以下代码，会出现比较奇怪的结果：<br><figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">let</span> [a = b, b = <span class="number">1</span>] = [];    <span class="comment">// 故意的, 会抛异常</span></div><div class="line"></div><div class="line"><span class="keyword">typeof</span> a;</div><div class="line"></div><div class="line"><span class="keyword">let</span> a = <span class="string">'other value'</span>;</div><div class="line"></div><div class="line">a = <span class="string">'other value'</span>;</div></pre></td></tr></table></figure></p>
+<p>代码运行效果如下图：<br><img src="/uploads/2017-09-08-eternal-tdz-in-chrome-console.png" alt=""></p>
+<ol>
+<li><p>首先第一行代码抛出<code>Uncaught ReferenceError: b is not defined</code>是比较容易理解的，因为第一行的<strong>ES6 Destructing</strong>语法等号右边是一个空数组，没有办法跟左边进行模式匹配，所以变量a和b会尝试用默认值赋值。然后代码<code>a = b, b = 1</code>以从左到右的顺序执行，由于执行到<code>a = b</code>时b还没有被<strong>初始化(Initialised, 注意这里的用词)</strong>，所以想用b给a赋值时发生了ReferenceError。</p>
+</li>
+<li><p>然后第2行代码尝试获取a，抛出<code>Uncaught ReferenceError: a is not defined</code>，难道是因为第一句代码出错了，导致a没有定义？</p>
+</li>
+<li><p>既然提示a没有定义，那么第3行就尝试定义a，但是却抛出<code>Uncaught SyntaxError: Identifier &#39;a&#39; has already been declared</code>。刚刚第2行不是提示a没被定义吗？怎么这里就提示a已被声明了呢？</p>
+</li>
+<li><p>OK，既然又提示a已被声明，那我就去给它赋值呗…然而第4行又出错了，抛出的错误跟第2行一样。</p>
+</li>
+</ol>
+<p>程序运行到这里，最奇怪的地方就是：a这个变量是处于一种既没有defined，但是又被declared的状态，而且没有办法对它进行赋值，似乎a已经陷入一个死局，我们再也没办法使用它了。</p>
+<h1 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h1><p>其实第一眼看到这些异常，自觉猜测可能跟let关键字的<a href="http://es6.ruanyifeng.com/#docs/let#暂时性死区" title="暂时性死区" target="_blank" rel="external">暂时性死区</a>(<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/let#Temporal_Dead_Zone_and_errors_with_let" title="TDZ" target="_blank" rel="external">TDZ</a>)有关，但并不确定Chrome的Console中的Scope到底是一个什么情况，于是把问题发上StackOverflow，<a href="https://stackoverflow.com/questions/46108143/strange-behavior-of-es6-destructuring-in-chrome-console" title="点击这里查看" target="_blank" rel="external">点击这里查看</a>。</p>
+<p>按照大神<a href="https://stackoverflow.com/users/1048572/bergi" title="@Bergi" target="_blank" rel="external">@Bergi</a>的回答，结合他提供的另外2篇资料：<a href="https://stackoverflow.com/questions/41255090/chrome-console-already-declared-variables-throw-undefined-reference-errors-for-l/41256149#41256149" title="Chrome console already declared variables throw undefined reference errors for let" target="_blank" rel="external">Chrome console already declared variables throw undefined reference errors for let</a> 和 <a href="https://stackoverflow.com/questions/31219420/are-variables-declared-with-let-or-const-not-hoisted-in-es6?noredirect=1&amp;lq=1" title="Are variables declared with let or const not hoisted in ES6?" target="_blank" rel="external">Are variables declared with let or const not hoisted in ES6?</a> ，大概理解并总结如下：</p>
+<h2 id="关于变量提升-hoisted"><a href="#关于变量提升-hoisted" class="headerlink" title="关于变量提升(hoisted)"></a>关于变量提升(hoisted)</h2><p>首先，不管是<code>var</code>、<code>let</code>还是<code>const</code>，都会被JS引擎进行<strong>变量提升(hoisted)</strong>，也就是这个变量的<strong>声明（declare）</strong>会被提到当前Scope的最前面，而<strong>初始化部分（initialization，一般是用等号进行赋值的语句）</strong>则保持在原来的地方。注意这里讲的<strong>声明</strong>并不是形如<code>let b;</code>这样的代码，因为这句代码实质等于<code>let b = undefined;</code>，也就是它已经包含了<strong>声明</strong>与<strong>初始化</strong>两部分了。</p>
+<p>而<code>var</code>、<code>let</code>和<code>const</code>在变量提升中的不同是：</p>
+<ol>
+<li>对<code>var</code>来说，如果在Scope开头 ~ 变量初始化部分之间尝试引用这个变量，并不会报错，<strong>而是会返回undefined</strong>.</li>
+<li>对<code>let</code>和<code>const</code>来说，做同样的事情则会抛出<strong>ReferenceError</strong>。</li>
+</ol>
+<p>可以通过代码来帮助理解这个不同：<br><figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">do_something</span>(<span class="params"></span>) </span>&#123;</div><div class="line">	<span class="comment">/* bar 和 foo 的声明会被提升到此处 */</span></div><div class="line">	<span class="built_in">console</span>.log(bar); <span class="comment">// undefined</span></div><div class="line">	<span class="built_in">console</span>.log(foo); <span class="comment">// ReferenceError</span></div><div class="line">	<span class="keyword">var</span> bar = <span class="number">1</span>;</div><div class="line">	<span class="keyword">let</span> foo = <span class="number">2</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h2 id="关于暂时性死区（TDZ）"><a href="#关于暂时性死区（TDZ）" class="headerlink" title="关于暂时性死区（TDZ）"></a>关于暂时性死区（TDZ）</h2><p>关于TDZ，其实就是对于用<code>let</code>和<code>const</code>定义的变量，在其Scope开头 ~ 变量初始化部分之间是不能访问的，一访问就会抛ReferenceError。这个不能访问的区域就叫TDZ。可通过下面的例子帮助理解：<br><figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (<span class="literal">true</span>) &#123;</div><div class="line">	<span class="comment">// TDZ开始</span></div><div class="line">	tmp = <span class="string">'abc'</span>; <span class="comment">// ReferenceError</span></div><div class="line">	<span class="built_in">console</span>.log(tmp); <span class="comment">// ReferenceError</span></div><div class="line"></div><div class="line">	<span class="keyword">let</span> tmp; <span class="comment">// TDZ结束</span></div><div class="line">	<span class="built_in">console</span>.log(tmp); <span class="comment">// undefined</span></div><div class="line"></div><div class="line">	tmp = <span class="number">123</span>;</div><div class="line">	<span class="built_in">console</span>.log(tmp); <span class="comment">// 123</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>更详细的资料可以看：<a href="http://es6.ruanyifeng.com/#docs/let#暂时性死区" title="暂时性死区" target="_blank" rel="external">暂时性死区</a>(<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/let#Temporal_Dead_Zone_and_errors_with_let" title="TDZ" target="_blank" rel="external">TDZ</a>)</p>
+<h2 id="如何理解一开始的问题？"><a href="#如何理解一开始的问题？" class="headerlink" title="如何理解一开始的问题？"></a>如何理解一开始的问题？</h2><p>回到一开始的问题，首先对于Chrome来说，直接在其Console定义的变量都将进入global scope。</p>
+<ol>
+<li>当执行<code>let [a = b, b = 1] = [];</code>时，JS引擎解析这句代码，我们意图定义两个变量a和b，所以就会在这里对a和b进行<strong>声明</strong>，则当前Scope里就存在a和b的声明了。</li>
+<li>然而第一句代码在执行时出错了，a和b没有被成功<strong>初始化</strong>，然而它们的<strong>声明</strong>还保留着。也就是说，a的TDZ开始了，但永远不会结束！</li>
+<li>接下来就很好理解了，对于第2和第4条代码来说，因为它们都意图访问a，然后a还没被<strong>初始化</strong>（还处在a的TDZ中），所以就报错<code>a is not defined</code>. 对于第3条代码来说，以为在这行代码之前a已经被<strong>声明</strong>了，所以不能重复声明。</li>
+</ol>
+<p>OK，至此就能解释为什么Chrome会有这样的Output了。</p>
+<p>另外大神还提供了一个例子可以reproduce这种情况：<br><figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">let</span> b = (<span class="function"><span class="params">_</span> =&gt;</span> &#123; <span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>() &#125;)();  <span class="comment">// 抛异常</span></div><div class="line"><span class="comment">// b永恒的死区开始了...</span></div></pre></td></tr></table></figure></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yellowb.me/2017/08/17/2017-08-17-web-dev-roadmap-2017/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -395,7 +546,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2017/08/09/2017-08-09-java-version-has-value-1.8-but-1.7-is-required - Copy/">
+    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2017/08/09/2017-08-09-java-version-has-value-1.8-but-1.7-is-required/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="YellowB">
@@ -414,7 +565,7 @@
         
           <h2 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/08/09/2017-08-09-java-version-has-value-1.8-but-1.7-is-required - Copy/" itemprop="url">Registry key Error Java version has value '1.8', but '1.7' is required</a></h2>
+                <a class="post-title-link" href="/2017/08/09/2017-08-09-java-version-has-value-1.8-but-1.7-is-required/" itemprop="url">Registry key Error Java version has value '1.8', but '1.7' is required</a></h2>
         
 
         <div class="post-meta">
@@ -939,7 +1090,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives/">
-                <span class="site-state-item-count">5</span>
+                <span class="site-state-item-count">6</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>
@@ -952,7 +1103,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">8</span>
+                <span class="site-state-item-count">9</span>
                 <span class="site-state-item-name">tags</span>
               </a>
             </div>
