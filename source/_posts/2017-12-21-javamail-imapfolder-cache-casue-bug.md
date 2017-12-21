@@ -1,8 +1,14 @@
 ---
-title: Javamail IMAPFolder类中的Cache导致不能获取邮件变化的Bug
+title: Javamail IMAPFolder类中的Cache导致不能获取邮件变化的坑
 date: 2017-12-21 15:52:33
 tags:
 - Java
 - Javamail
 - Bugfix
 ---
+# 背景
+厂里有一个Java项目，需要走IMAP协议去邮箱读取邮件，于是自然使用了Javamail这个库。然后为了减少频繁打开/关闭Session连接的性能消耗、限制多线程环境下每个邮箱文件夹被打开的Session数量，就基于Apache Commons-pool自己封装了一个Session连接池。
+
+简单来说连接池里的每个连接都是一个活动的Session（其实就是`com.sun.mail.imap.IMAPFolder`类的对象，因为在Javamail中一个Session只能对应一个文件夹），每次代码需要操作邮件时，从连接池中取出一个IMAPFolder对象，用完后归还回连接池里。
+
+前段时间刚上线邮件量不太大时，似乎没什么大问题（现在想想其实应该一直都有问题，只是邮件量不大时，被后台一个定时做Recovery的Job掩盖了）。最近邮件量大了后开始频繁出现一个奇怪的问题：**有时候扫描邮箱想取最新的邮件时，发现取不到，但实际上这时新邮件已经到达邮箱了。也就是邮箱里的邮件和Java代码这边看到的情况不同步**，而且这个问题并不是总是出现的，往往重启程序后一开始是没问题的，但运行了一段时间就会不定时地出现。
