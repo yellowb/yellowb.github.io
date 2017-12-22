@@ -89,9 +89,40 @@ public synchronized List<MailEvent> open(int mode, ResyncData rd)
 这里先解决第一个问题：为什么只new了一个空数组而不填充里面的值？
 
 ### (1.1) 为什么`messageCache`只new了一个空数组而不填充里面的值？
+用一个形象的图表示刚执行完open函数，但是还没执行其它操作的Folder的Cache与邮箱里邮件的关系：
 
+![](https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20171221/javamail-server-mapping-0.png)
 
-
+可以看到Cache数组的长度就是邮件总数，并且数组里每个元素都是null.
+接下来可以看IMAPFolder类里面有个getMessage(int msgnum)函数，这个函数是根据Message number获取一个Message对象：
+```java
+    /**
+     * Get the message object for the indicated message number.
+     * If the message object hasn't been created, create it.
+     *
+     * @param	msgnum	the message number
+     * @return		the message
+     */
+    public IMAPMessage getMessage(int msgnum) {
+	// check range
+	if (msgnum < 1 || msgnum > size)
+	    throw new ArrayIndexOutOfBoundsException(
+		"message number (" + msgnum + ") out of bounds (" + size + ")");
+	IMAPMessage msg = messages[msgnum-1];
+	if (msg == null) {    // 如果Cache中某个下标是被第一次读取，那么肯定是null，就要初始化它！
+	    if (logger.isLoggable(Level.FINE))
+		logger.fine("create message number " + msgnum);
+	    msg = folder.newIMAPMessage(msgnum);
+	    messages[msgnum-1] = msg;   // 初始化完了，放回去Cache数组对应位置！
+	    // mark message expunged if no seqnum
+	    if (seqnumOf(msgnum) <= 0) {
+		logger.fine("it's expunged!");
+		msg.setExpunged(true);
+	    }
+	}
+	return msg;
+    }
+```
 
 
 
