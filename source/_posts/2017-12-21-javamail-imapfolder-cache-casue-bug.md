@@ -37,7 +37,7 @@ WTF？！难道还真缓存了邮箱的Message？为了一探究竟，眼睛看�
 
 (以下测试代码可以从[这里](https://github.com/yellowb/email-engine-poc/blob/master/PocRedis/src/main/java/test/email/TestSearchMailByMsgID.java "这里")找到)
 
-(1) 第一个问题，这个`messageCache`是什么时候初始化的？
+### (1) 第一个问题，这个`messageCache`是什么时候初始化的？
 根据Debug，发现`IMAPFolder`有个open函数：
 ```java
 public synchronized List<MailEvent> open(int mode, ResyncData rd)
