@@ -1,3 +1,12 @@
+---
+title: 史前巨坑之Javamail IMAPFolder类中的Cache导致打开的Folder Session某些情况下不能获取邮件变化
+date: 2017-12-21 15:52:33
+tags:
+- Java
+- Javamail
+- Bugfix
+---
+
 # 背景
 厂里有一个Java项目，需要走IMAP协议去邮箱读取邮件，于是自然使用了Javamail这个库。然后为了减少频繁打开/关闭Session连接的性能消耗、限制多线程环境下每个邮箱文件夹被打开的Session数量，就基于Apache Commons-pool自己封装了一个Session连接池。
 
@@ -78,10 +87,10 @@ public synchronized List<MailEvent> open(int mode, ResyncData rd)
 ```
 这个messages是messageCache的成员变量，类型是一个IMAPMessage数组，其实它就是实际上缓存Message对象的地方。由于messageCache在初始化时，message肯定是null，所以会走到第一个if分支，最后就是new了一个空数组而已（准确来说是数组里每个元素都是null），数组长度是刚刚获取到的当前邮件数量 + SLOP。（SLOP的值是64，其实就是预先提前多分配64个位置，避免以后每次扩容时都要new一个新数组）。**这里就会有2个疑问了：第一是为什么只new了一个空数组而不填充里面的值？第二是这个缓存居然会扩容，那么它什么情况下会扩容？**
 
-这里先解决第一个问题：为什么只new了一个空数组而不填充里面的值？
+这里先解决第一个疑问：**为什么只new了一个空数组而不填充里面的值？**
 
 ### (1.1) 为什么`messageCache`只new了一个空数组而不填充里面的值？
-用一个形象的图表示刚执行完open函数，但是还没执行其它操作的Folder的Cache与邮箱里邮件的关系：
+用一个形象的图表示刚执行完open函数，但是还没执行其它操作的Folder的Cache与邮箱里邮件的关系（注意A/B/C/D代表邮件的messageId）：
 
 ![](https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20171221/javamail-server-mapping-0.png)
 
@@ -116,15 +125,54 @@ public synchronized List<MailEvent> open(int mode, ResyncData rd)
     }
 ```
 
-请留意我加的中文注释，也就是说，这里采用的是类似Lazy Load的策略，当第一次以某个Message Number读取邮件时，才会真正初始化对应的Cache元素。如果我调用了IMAPFolder.getMessage(4)，那么结构图应该如下（其实new一个IMAPMessage对象，你可以理解成这个东西就是个**句柄**，指向邮箱中真正的邮件，任何要读取邮件的操作都可以通过这个句柄做）：
+请留意我加的中文注释，也就是说，这里采用的是类似Lazy Load的策略，当第一次以某个Message Number读取邮件时，才会真正初始化对应的Cache元素。如果我调用了`IMAPFolder.getMessage(4)`，那么结构图应该如下（其实new一个IMAPMessage对象，你可以理解成这个东西就是个**句柄**，指向邮箱中真正的邮件，任何要读取邮件的操作都可以通过这个句柄做）：
 
 ![](https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20171221/javamail-server-mapping-1.png)
 
+至于第2个疑问：“**这个缓存居然会扩容，那么它什么情况下会扩容？**”，后面再阐述。
 
+## (2) 第二个问题，如果我打开了一个Folder Session之后，别的Session增/删了邮箱里的邮件，那么我这个已有的Session能看见吗？
+这里我设计了2个场景，初始环境都为**邮箱里有messageId为A、B、C、D的四封邮件，其message number分别是1、2、3、4**：
+注意这里运行代码要打开Javamail的debugMode，看服务器和客户端直接的命令交互。
 
+### （2.1）场景1，模拟邮件被删：
+步骤为：
+1. 打开一个Folder Session（记为原Session）。
+2. 通过原Session用IMAPFolder.search函数通过messageId='D'搜索，看看返回的message number是多少。
+3. 用另一个Session（这里我是用Web Outlook界面）把邮件C删除。
+4. 再通过原Session用IMAPFolder.search函数通过messageId='D'搜索，看看返回值是什么。
 
+先说结果：
+1. 步骤2时，通过IMAPFolder.search返回的message number是4。这个毫无疑问没什么可说的。
+2. 步骤3时，我把邮件C删掉，然后用另一个Javamail程序验证过，邮件D的message number变成3了（这是由IMAP的机制决定的，邮件的message number必须是从1开始的连续整数，中间不能有空缺，所以C被删后，D就顶上去）。
+3. 步骤4时，通过IMAPFolder.search返回的message number**仍然是4**。
 
+步骤4除了Debug外，还可以通过Debug Log看到，服务器并没有给原Session返回3，而是仍然返回4，虽然这时候邮箱里的真实情况是邮件D的message number已经变成3了。
 
+    A8 SEARCH HEADER Message-ID <A> ALL
+    * SEARCH 4
+    A8 OK SEARCH completed.
 
+这时候的结构图大概如下：
 
+![](https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20171221/javamail-server-mapping-2.png)
 
+### （2.2）场景2，模拟新增邮件：
+1. 打开一个Folder Session（记为原Session）。
+2. 用另一个Session（这里我是用Web Outlook界面）发一封新邮件到这个邮箱目录，并取到其messageId（假设是'E'）。
+3. 再通过原Session用IMAPFolder.search函数通过messageId='E'搜索，看看返回值是什么。
+
+先说结果：
+步骤3时，服务器返回是null，也就是用messageId='E'找不到邮箱中的邮件E，虽然这时候邮箱中的确有邮件E的存在。
+
+这时候的结构图大概如下：
+
+![](https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20171221/javamail-server-mapping-3.png)
+
+所以，经过测试，邮件服务器客户端之间维护一种类似于数据库中的“可重复读”的特性，**就是这个Session似乎看不到别人增删的东西。**
+
+# 方案
+
+现在看来，keep住一个alive的Folder对象的做法似乎是错的，因为它看不到最新的变化，以前有时候正常可能是因为Folder session被关闭重新打开的缘故。
+
+现在暂时只能在线程用完Session后return回pool前手动将它close，那么下次从pool中取出时就会发现它已经死了，又会重新建立一个Session。毕竟我们还要依赖pool来限制多线程环境下打开的总Session个数。
