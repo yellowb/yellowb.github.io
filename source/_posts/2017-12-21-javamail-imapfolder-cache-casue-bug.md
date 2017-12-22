@@ -37,7 +37,7 @@ WTF？！难道还真缓存了邮箱的Message？为了一探究竟，眼睛看�
 
 (以下测试代码可以从[这里](https://github.com/yellowb/email-engine-poc/blob/master/PocRedis/src/main/java/test/email/TestSearchMailByMsgID.java "这里")找到)
 
-### (1) 第一个问题，这个`messageCache`是什么时候初始化的？
+## (1) 第一个问题，这个`messageCache`是什么时候初始化的？
 根据Debug，发现`IMAPFolder`有个open函数：
 ```java
 public synchronized List<MailEvent> open(int mode, ResyncData rd)
@@ -84,6 +84,16 @@ public synchronized List<MailEvent> open(int mode, ResyncData rd)
 	    messages = new IMAPMessage[newsize + SLOP];
 	else if { ...
 ```
-这个message是messageCache的成员变量，类型是一个IMAPMessage数组，其实它就是实际上缓存Message对象的地方。由于messageCache在初始化时，message肯定是null，所以会走到第一个if分支，最后就是new了一个空数组而已（准确来说是数组里每个元素都是null），数组长度是刚刚获取到的当前邮件数量 + SLOP。（SLOP的值是64，其实就是预先提前多分配64个位置，避免以后每次扩容时都要new一个新数组）。**这里就会有2个疑问了：第一是为什么只new了一个空数组而不填充里面的值？第二是这个缓存居然会扩容，那么它什么情况下会扩容？**
+这个messages是messageCache的成员变量，类型是一个IMAPMessage数组，其实它就是实际上缓存Message对象的地方。由于messageCache在初始化时，message肯定是null，所以会走到第一个if分支，最后就是new了一个空数组而已（准确来说是数组里每个元素都是null），数组长度是刚刚获取到的当前邮件数量 + SLOP。（SLOP的值是64，其实就是预先提前多分配64个位置，避免以后每次扩容时都要new一个新数组）。**这里就会有2个疑问了：第一是为什么只new了一个空数组而不填充里面的值？第二是这个缓存居然会扩容，那么它什么情况下会扩容？**
 
 这里先解决第一个问题：为什么只new了一个空数组而不填充里面的值？
+
+### (1.1) 为什么`messageCache`只new了一个空数组而不填充里面的值？
+
+
+
+
+
+
+
+
