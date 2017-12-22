@@ -76,7 +76,7 @@
 <link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="Java,Javamail,Bugfix," />
+  <meta name="keywords" content="Hexo, NexT" />
 
 
 
@@ -93,17 +93,19 @@
 
 
 <meta name="description" content="背景厂里有一个Java项目，需要走IMAP协议去邮箱读取邮件，于是自然使用了Javamail这个库。然后为了减少频繁打开/关闭Session连接的性能消耗、限制多线程环境下每个邮箱文件夹被打开的Session数量，就基于Apache Commons-pool自己封装了一个Session连接池。 简单来说连接池里的每个连接都是一个活动的Session（其实就是com.sun.mail.imap.IM">
-<meta name="keywords" content="Java,Javamail,Bugfix">
 <meta property="og:type" content="article">
-<meta property="og:title" content="史前巨坑之Javamail IMAPFolder类中的Cache导致打开的Folder Session某些情况下不能获取邮件变化">
+<meta property="og:title" content="YellowB&#39;s Blog">
 <meta property="og:url" content="http://yellowb.me/2017/12/21/2017-12-21-javamail-imapfolder-cache-casue-bug/index.html">
 <meta property="og:site_name" content="YellowB&#39;s Blog">
 <meta property="og:description" content="背景厂里有一个Java项目，需要走IMAP协议去邮箱读取邮件，于是自然使用了Javamail这个库。然后为了减少频繁打开/关闭Session连接的性能消耗、限制多线程环境下每个邮箱文件夹被打开的Session数量，就基于Apache Commons-pool自己封装了一个Session连接池。 简单来说连接池里的每个连接都是一个活动的Session（其实就是com.sun.mail.imap.IM">
 <meta property="og:locale" content="en">
-<meta property="og:updated_time" content="2017-12-21T16:11:46.509Z">
+<meta property="og:image" content="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20171221/javamail-server-mapping-0.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20171221/javamail-server-mapping-1.png">
+<meta property="og:updated_time" content="2017-12-22T03:04:08.593Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="史前巨坑之Javamail IMAPFolder类中的Cache导致打开的Folder Session某些情况下不能获取邮件变化">
+<meta name="twitter:title" content="YellowB&#39;s Blog">
 <meta name="twitter:description" content="背景厂里有一个Java项目，需要走IMAP协议去邮箱读取邮件，于是自然使用了Javamail这个库。然后为了减少频繁打开/关闭Session连接的性能消耗、限制多线程环境下每个邮箱文件夹被打开的Session数量，就基于Apache Commons-pool自己封装了一个Session连接池。 简单来说连接池里的每个连接都是一个活动的Session（其实就是com.sun.mail.imap.IM">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20171221/javamail-server-mapping-0.png">
 
 
 
@@ -138,7 +140,7 @@
 
 
 
-  <title>史前巨坑之Javamail IMAPFolder类中的Cache导致打开的Folder Session某些情况下不能获取邮件变化 | YellowB's Blog</title>
+  <title> | YellowB's Blog</title>
   
 
 
@@ -288,7 +290,7 @@
 
         
         
-          <h2 class="post-title" itemprop="name headline">史前巨坑之Javamail IMAPFolder类中的Cache导致打开的Folder Session某些情况下不能获取邮件变化</h2>
+          <h2 class="post-title" itemprop="name headline"></h2>
         
 
         <div class="post-meta">
@@ -300,7 +302,7 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-12-21T15:52:33+08:00">
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-12-21T15:52:45+08:00">
                 2017-12-21
               </time>
             
@@ -352,11 +354,16 @@
 <p><code>messageCache</code>是什么鬼？点进去继续看：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MessageCache</span> </span>&#123;</div><div class="line">    <span class="comment">/*</span></div><div class="line"><span class="comment">     * The array of IMAPMessage objects.  Elements of the array might</span></div><div class="line"><span class="comment">     * be null if no one has asked for the message.  The array expands</span></div><div class="line"><span class="comment">     * as needed and might be larger than the number of messages in the</span></div><div class="line"><span class="comment">     * folder.  The "size" field indicates the number of entries that</span></div><div class="line"><span class="comment">     * are valid.</span></div><div class="line"><span class="comment">     */</span></div><div class="line">    <span class="keyword">private</span> IMAPMessage[] messages;</div></pre></td></tr></table></figure></p>
 <p>WTF？！难道还真缓存了邮箱的Message？为了一探究竟，眼睛看代码不是好办法，用IDEA把源码下下来attach上去就开始Debug。</p>
 <p>(以下测试代码可以从<a href="https://github.com/yellowb/email-engine-poc/blob/master/PocRedis/src/main/java/test/email/TestSearchMailByMsgID.java" title="这里" target="_blank" rel="external">这里</a>找到)</p>
-<p>(1) 第一个问题，这个<code>messageCache</code>是什么时候初始化的？<br>根据Debug，发现<code>IMAPFolder</code>有个open函数：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> List&lt;MailEvent&gt; <span class="title">open</span><span class="params">(<span class="keyword">int</span> mode, ResyncData rd)</span></span></div><div class="line"><span class="function">				<span class="keyword">throws</span> MessagingException </span>&#123;</div><div class="line">	<span class="comment">// 一堆检查...</span></div><div class="line">	</div><div class="line">	    <span class="comment">// Initialize stuff.</span></div><div class="line">	    opened = <span class="keyword">true</span>;</div><div class="line">	    reallyClosed = <span class="keyword">false</span>;</div><div class="line">	    <span class="keyword">this</span>.mode = mi.mode;</div><div class="line">	    availableFlags = mi.availableFlags;</div><div class="line">	    permanentFlags = mi.permanentFlags;</div><div class="line">	    total = realTotal = mi.total;</div><div class="line">	    recent = mi.recent;</div><div class="line">	    uidvalidity = mi.uidvalidity;</div><div class="line">	    uidnext = mi.uidnext;</div><div class="line">	    highestmodseq = mi.highestmodseq;</div><div class="line"></div><div class="line">	    <span class="comment">// Create the message cache of appropriate size</span></div><div class="line">	    messageCache = <span class="keyword">new</span> MessageCache(<span class="keyword">this</span>, (IMAPStore)store, total);</div></pre></td></tr></table></figure></p>
+<h2 id="1-第一个问题，这个messageCache是什么时候初始化的？"><a href="#1-第一个问题，这个messageCache是什么时候初始化的？" class="headerlink" title="(1) 第一个问题，这个messageCache是什么时候初始化的？"></a>(1) 第一个问题，这个<code>messageCache</code>是什么时候初始化的？</h2><p>根据Debug，发现<code>IMAPFolder</code>有个open函数：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> List&lt;MailEvent&gt; <span class="title">open</span><span class="params">(<span class="keyword">int</span> mode, ResyncData rd)</span></span></div><div class="line"><span class="function">				<span class="keyword">throws</span> MessagingException </span>&#123;</div><div class="line">	<span class="comment">// 一堆检查...</span></div><div class="line">	</div><div class="line">	    <span class="comment">// Initialize stuff.</span></div><div class="line">	    opened = <span class="keyword">true</span>;</div><div class="line">	    reallyClosed = <span class="keyword">false</span>;</div><div class="line">	    <span class="keyword">this</span>.mode = mi.mode;</div><div class="line">	    availableFlags = mi.availableFlags;</div><div class="line">	    permanentFlags = mi.permanentFlags;</div><div class="line">	    total = realTotal = mi.total;</div><div class="line">	    recent = mi.recent;</div><div class="line">	    uidvalidity = mi.uidvalidity;</div><div class="line">	    uidnext = mi.uidnext;</div><div class="line">	    highestmodseq = mi.highestmodseq;</div><div class="line"></div><div class="line">	    <span class="comment">// Create the message cache of appropriate size</span></div><div class="line">	    messageCache = <span class="keyword">new</span> MessageCache(<span class="keyword">this</span>, (IMAPStore)store, total);</div></pre></td></tr></table></figure></p>
 <p>看来是open一个Folder时去初始化的，构造函数的this即Folder本身，total是之前代码获取的邮箱中邮件的总数。再看看这个构造函数干了啥：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">   <span class="comment">/**</span></div><div class="line"><span class="comment">    * Construct a new message cache of the indicated size.</span></div><div class="line"><span class="comment">    */</span></div><div class="line">   MessageCache(IMAPFolder folder, IMAPStore store, <span class="keyword">int</span> size) &#123;</div><div class="line"><span class="keyword">this</span>.folder = folder;</div><div class="line">logger = folder.logger.getSubLogger(<span class="string">"messagecache"</span>, <span class="string">"DEBUG IMAP MC"</span>,</div><div class="line">					store.getMessageCacheDebug());</div><div class="line"><span class="keyword">if</span> (logger.isLoggable(Level.CONFIG))</div><div class="line">    logger.config(<span class="string">"create cache of size "</span> + size);</div><div class="line">ensureCapacity(size, <span class="number">1</span>);</div><div class="line">   &#125;</div></pre></td></tr></table></figure></p>
 <p>实际上有用的只有最后一行，调用了ensureCapacity函数：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/*</span></div><div class="line"><span class="comment">     * Make sure the arrays are at least big enough to hold</span></div><div class="line"><span class="comment">     * "newsize" messages.</span></div><div class="line"><span class="comment">     */</span></div><div class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">ensureCapacity</span><span class="params">(<span class="keyword">int</span> newsize, <span class="keyword">int</span> newSeqNum)</span> </span>&#123;</div><div class="line">	<span class="keyword">if</span> (messages == <span class="keyword">null</span>)</div><div class="line">	    messages = <span class="keyword">new</span> IMAPMessage[newsize + SLOP];</div><div class="line">	<span class="keyword">else</span> <span class="keyword">if</span> &#123; ...</div></pre></td></tr></table></figure></p>
-<p>这个message是messageCache的成员变量，类型是一个IMAPMessage数组，其实它就是实际上缓存Message对象的地方。由于messageCache在初始化时，message肯定是null，所以会走到第一个if分支，最后就是new了一个空数组而已（准确来说是数组里每个元素都是null），数组长度是刚刚获取到的当前邮件数量 + SLOP。（SLOP的值是64，其实就是预先提前多分配64个位置，避免以后每次扩容时都要new一个新数组）。<strong>这里就会有2个疑问了：第一是为什么只new了一个空数组而不填充里面的值？第二是这个缓存居然会扩容，那么它什么情况下会扩容？</strong></p>
+<p>这个messages是messageCache的成员变量，类型是一个IMAPMessage数组，其实它就是实际上缓存Message对象的地方。由于messageCache在初始化时，message肯定是null，所以会走到第一个if分支，最后就是new了一个空数组而已（准确来说是数组里每个元素都是null），数组长度是刚刚获取到的当前邮件数量 + SLOP。（SLOP的值是64，其实就是预先提前多分配64个位置，避免以后每次扩容时都要new一个新数组）。<strong>这里就会有2个疑问了：第一是为什么只new了一个空数组而不填充里面的值？第二是这个缓存居然会扩容，那么它什么情况下会扩容？</strong></p>
 <p>这里先解决第一个问题：为什么只new了一个空数组而不填充里面的值？</p>
+<h3 id="1-1-为什么messageCache只new了一个空数组而不填充里面的值？"><a href="#1-1-为什么messageCache只new了一个空数组而不填充里面的值？" class="headerlink" title="(1.1) 为什么messageCache只new了一个空数组而不填充里面的值？"></a>(1.1) 为什么<code>messageCache</code>只new了一个空数组而不填充里面的值？</h3><p>用一个形象的图表示刚执行完open函数，但是还没执行其它操作的Folder的Cache与邮箱里邮件的关系：</p>
+<p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20171221/javamail-server-mapping-0.png" alt=""></p>
+<p>可以看到Cache数组的长度就是邮件总数，并且数组里每个元素都是null.<br>接下来可以看IMAPFolder类里面有个<code>getMessage(int msgnum)</code>函数，这个函数是根据Message number获取一个Message对象：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line">   <span class="comment">/**</span></div><div class="line"><span class="comment">    * Get the message object for the indicated message number.</span></div><div class="line"><span class="comment">    * If the message object hasn't been created, create it.</span></div><div class="line"><span class="comment">    *</span></div><div class="line"><span class="comment">    * <span class="doctag">@param</span>	msgnum	the message number</span></div><div class="line"><span class="comment">    * <span class="doctag">@return</span>		the message</span></div><div class="line"><span class="comment">    */</span></div><div class="line">   <span class="function"><span class="keyword">public</span> IMAPMessage <span class="title">getMessage</span><span class="params">(<span class="keyword">int</span> msgnum)</span> </span>&#123;</div><div class="line"><span class="comment">// check range</span></div><div class="line"><span class="keyword">if</span> (msgnum &lt; <span class="number">1</span> || msgnum &gt; size)</div><div class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> ArrayIndexOutOfBoundsException(</div><div class="line">	<span class="string">"message number ("</span> + msgnum + <span class="string">") out of bounds ("</span> + size + <span class="string">")"</span>);</div><div class="line">IMAPMessage msg = messages[msgnum-<span class="number">1</span>];</div><div class="line"><span class="keyword">if</span> (msg == <span class="keyword">null</span>) &#123;    <span class="comment">// 如果Cache中某个下标是被第一次读取，那么肯定是null，就要初始化它！</span></div><div class="line">    <span class="keyword">if</span> (logger.isLoggable(Level.FINE))</div><div class="line">	logger.fine(<span class="string">"create message number "</span> + msgnum);</div><div class="line">    msg = folder.newIMAPMessage(msgnum);</div><div class="line">    messages[msgnum-<span class="number">1</span>] = msg;   <span class="comment">// 初始化完了，放回去Cache数组对应位置！</span></div><div class="line">    <span class="comment">// mark message expunged if no seqnum</span></div><div class="line">    <span class="keyword">if</span> (seqnumOf(msgnum) &lt;= <span class="number">0</span>) &#123;</div><div class="line">	logger.fine(<span class="string">"it's expunged!"</span>);</div><div class="line">	msg.setExpunged(<span class="keyword">true</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"><span class="keyword">return</span> msg;</div><div class="line">   &#125;</div></pre></td></tr></table></figure></p>
+<p>请留意我加的中文注释，也就是说，这里采用的是类似Lazy Load的策略，当第一次以某个Message Number读取邮件时，才会真正初始化对应的Cache元素。如果我调用了IMAPFolder.getMessage(4)，那么结构图应该如下（其实new一个IMAPMessage对象，你可以理解成这个东西就是个<strong>句柄</strong>，指向邮箱中真正的邮件，任何要读取邮件的操作都可以通过这个句柄做）：</p>
+<p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20171221/javamail-server-mapping-1.png" alt=""></p>
 
       
     </div>
@@ -371,16 +378,6 @@
     
 
     <footer class="post-footer">
-      
-        <div class="post-tags">
-          
-            <a href="/tags/Java/" rel="tag"># Java</a>
-          
-            <a href="/tags/Javamail/" rel="tag"># Javamail</a>
-          
-            <a href="/tags/Bugfix/" rel="tag"># Bugfix</a>
-          
-        </div>
       
 
       
@@ -495,7 +492,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">11</span>
+                <span class="site-state-item-count">9</span>
                 <span class="site-state-item-name">tags</span>
               </a>
             </div>
@@ -576,7 +573,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#背景"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#分析"><span class="nav-number">2.</span> <span class="nav-text">分析</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#背景"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#分析"><span class="nav-number">2.</span> <span class="nav-text">分析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-第一个问题，这个messageCache是什么时候初始化的？"><span class="nav-number">2.1.</span> <span class="nav-text">(1) 第一个问题，这个messageCache是什么时候初始化的？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-为什么messageCache只new了一个空数组而不填充里面的值？"><span class="nav-number">2.1.1.</span> <span class="nav-text">(1.1) 为什么messageCache只new了一个空数组而不填充里面的值？</span></a></li></ol></li></ol></li></ol></div>
             
 
           </div>
