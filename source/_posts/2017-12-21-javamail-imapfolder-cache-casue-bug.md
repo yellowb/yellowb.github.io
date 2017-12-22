@@ -1,11 +1,3 @@
----
-title: 史前巨坑之Javamail IMAPFolder类中的Cache导致打开的Folder Session某些情况下不能获取邮件变化
-date: 2017-12-21 15:52:33
-tags:
-- Java
-- Javamail
-- Bugfix
----
 # 背景
 厂里有一个Java项目，需要走IMAP协议去邮箱读取邮件，于是自然使用了Javamail这个库。然后为了减少频繁打开/关闭Session连接的性能消耗、限制多线程环境下每个邮箱文件夹被打开的Session数量，就基于Apache Commons-pool自己封装了一个Session连接池。
 
@@ -94,7 +86,7 @@ public synchronized List<MailEvent> open(int mode, ResyncData rd)
 ![](https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20171221/javamail-server-mapping-0.png)
 
 可以看到Cache数组的长度就是邮件总数，并且数组里每个元素都是null.
-接下来可以看IMAPFolder类里面有个getMessage(int msgnum)函数，这个函数是根据Message number获取一个Message对象：
+接下来可以看IMAPFolder类里面有个`getMessage(int msgnum)`函数，这个函数是根据Message number获取一个Message对象：
 ```java
     /**
      * Get the message object for the indicated message number.
@@ -123,6 +115,14 @@ public synchronized List<MailEvent> open(int mode, ResyncData rd)
 	return msg;
     }
 ```
+
+请留意我加的中文注释，也就是说，这里采用的是类似Lazy Load的策略，当第一次以某个Message Number读取邮件时，才会真正初始化对应的Cache元素。如果我调用了IMAPFolder.getMessage(4)，那么结构图应该如下（其实new一个IMAPMessage对象，你可以理解成这个东西就是个**句柄**，指向邮箱中真正的邮件，任何要读取邮件的操作都可以通过这个句柄做）：
+
+![](https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20171221/javamail-server-mapping-1.png)
+
+
+
+
 
 
 
