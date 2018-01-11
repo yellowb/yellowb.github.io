@@ -271,6 +271,319 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2018/01/10/2018-01-10-modeling-in-mongodb-for-chaos-attrs/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="YellowB">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="YellowB's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/01/10/2018-01-10-modeling-in-mongodb-for-chaos-attrs/" itemprop="url">对“属性不确定的对象”如何进行数据建模的思考(Part 1)</a></h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2018-01-10T16:52:33+08:00">
+                2018-01-10
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>部门里有同学负责一个任务分派系统（以下简称<strong>T系统</strong>），其用户主要是公司里的客服人员。T系统的作用主要是为这些客服人员提供可视化的任务搜索、任务分派、任务追踪功能，简单来说用户打开T系统后就能看到自己手头上的任务或者新生成还没被人拿走的任务，然后可以对它们进行操作，并且在任务状态改变时可以在UI上看到他们的变化。</p>
+<p>这里要着重点出的是：<strong>T系统里有很多不同类型的任务，而不同类型的任务的属性是不一样的（会有少部分公共属性是一样的，其余大部分任务私有属性是不同的），并且用户还可以新增自定义任务和它们的属性。T系统还对用户提供了搜索功能能够基于任务属性做过滤。</strong>数据模型例子：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">// 任务类型1</div><div class="line">&#123;</div><div class="line">    // 公共属性</div><div class="line">    type: "A",</div><div class="line">    createTime: "20180101",</div><div class="line">    // 私有属性</div><div class="line">    p1: "v1",</div><div class="line">    p2: "v2",</div><div class="line">&#125;</div><div class="line"></div><div class="line">// 任务类型2</div><div class="line">&#123;</div><div class="line">    // 公共属性</div><div class="line">    type: "B",</div><div class="line">    createTime: "20180102",</div><div class="line">    // 私有属性</div><div class="line">    p3: "v3",</div><div class="line">    p4: "v4",</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>由于T系统是从别人手里接手过来的，拿到手时系统的基本框架、数据模型、数据流等都已经被确定了。基于公司高层对Oracle数据库的虔诚信仰，T系统底层的数据存储自然选用的就是Oracle RDBMS了（包括公司内部其它系统全都是Oracle RDBMS）。</p>
+<p>首先，RDBMS能提供一个非常重要的性质：ACID，简单来说就是保证一个操作多个表的多行数据的事务是原子性的，也就是中间失败了前面的操作会回滚，并且提供了事务间的隔离性，防止读到脏数据。这个性质对维持数据的一致性非常重要，如果没有这个性质，那么应用程序就要自己去处理失败回滚的问题，这样会导致程序逻辑非常复杂。</p>
+<p>回到T系统，它是怎么把任务数据存储到RDBMS里的呢？也就是它的数据建模是怎么做的呢？按照当前的设计，任务数据存放在2张表里：任务基本信息表（TaskBase表）、任务私有属性表（TaskDetail表）。</p>
+<ol>
+<li>TaskBase表：存放任务PK、公共信息。每个任务在这张表里只有一条记录。</li>
+<li>TaskDetail表：存放任务私有属性，每个任务的一个属性作为一个K-V对（也就是这个表有2列，一个列存放属性名，另一个列存放属性值）存放到这个表中，并通过FK关联到TaskBase表，指明属性是属于哪个任务的。一般一个任务都会有20+个属性。</li>
+</ol>
+<p>具体例子可以参考下图：</p>
+<p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20180110/rdbms_ER.png" alt=""></p>
+<p>为什么这样设计呢？个人估计是由于任务的私有属性种类在业务上是无法固化的，也就是可能随时变化的，每种任务的属性也不一样。对于这种“属性不确定的对象”，用RDBMS是无法很好的匹配的，主要有如下一些问题：</p>
+<ol>
+<li>因为RDBMS的结构是一张列基本确定的二维表，虽然可以对列做增删，但是数据量大时很麻烦。</li>
+<li>如果我们穷举所有任务的所有属性得到一个属性集，然后把属性集的每一个属性作为一个列，则我们会得到一个列数非常多的表，而且这张表可能非常稀疏（想象一下，如果对于一些属性，某一类型的任务是没有的，那么这些任务数据的相应列都是空的，进而造成这张表很多空值，浪费空间）。</li>
+<li>业务上这些任务的属性是可以被用户自定义的，如果用户每增加一个属性，我们就增加一个列，那么这个工作量是无法想象的。</li>
+</ol>
+<p>所以当前T系统采用了一种折中的方案：把任务的私有属性放到另一张表中，用K-V的形式存储。然而这种设计也带来一些问题：</p>
+<ol>
+<li>单表数据量极大：由于每个任务可能有几十个属性，所以TaskDetail表会几十倍于TaskBase表，当前已经到达了好几亿的量级（这还是只保留最近几个月的数据的情况下），而且没有做任何的分表。按照以前看到阿里内部指南所说，不建议单表容量超过5M，当然我们用的是牛逼的Oracle数据库和高性能一体机，可能这个上限还能更高些，不过无论如何把上亿的数据塞到一个表中也不是什么好的实践。</li>
+<li>查询速度慢：查询有等值、范围、模糊几种，并且会在多个属性上做组合。虽然已经为TaskDetail表的Field和Value建立联合索引，但由于这个表数据量太大，即使走索引也要读取大量块。而且因为每个用户只会读他关注的那部分任务，所以看起来并不会有太热的数据，可能数据库缓存也不太好使。更别提会在一些Value上用Like来检索了…</li>
+<li>由于RDBMS每个列的数据类型都是预先定义的，为了兼顾到不同属性，这里Value列用的是varchar2，也就是说不管存储的是数值还是日期（实际上还是数值），都必须变成字符串，众所周知字符串消耗的空间要比数值大得多。（想象下”100000000” vs 100000000）</li>
+</ol>
+<p><strong>总结一下：</strong></p>
+<ol>
+<li>T系统把一些属性动态变化的对象变成K-V的形式存储到RDBMS。</li>
+<li>由于没有为检索做更多的优化，完全用DB来扛，导致性能堪忧。</li>
+</ol>
+<h1 id="一些思考"><a href="#一些思考" class="headerlink" title="一些思考"></a>一些思考</h1><p>如果不对用户需求做任何改变，仅仅从数据存储和性能的层面来看，当前T系统的数据建模是否合适？</p>
+<p>以前曾经参加过一次MongoDB的会议，会上有网易游戏的运维哥哥说到，以前他们用的是MySQL存储游戏角色数据，而游戏策划经常对角色属性进行更改（比如加技能、加装备等），每次变更都要对MySQL表加列，使得他们非常痛苦。后来他们迁移到MongoDB，由于MongoDB是Schemaless的，所以可以随时加新的属性，并且每条记录的属性都可以不一样，这个迁移让他们运维的难度大大降低，引用他们的原话就是“舒服多了”。</p>
+<p>那么如果我们像网易游戏哥哥一样采用Schemaless的数据库来建模，是不是会有一些不同？下面先来对比一下不同类型数据库的特点。</p>
+<h2 id="不同类型数据库的对比"><a href="#不同类型数据库的对比" class="headerlink" title="不同类型数据库的对比"></a>不同类型数据库的对比</h2><p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20180110/db-roadmap.jpg" alt=""></p>
+<h3 id="1-RDBMS"><a href="#1-RDBMS" class="headerlink" title="1.RDBMS"></a>1.RDBMS</h3><p>从上世纪70年代E.F.Codd的论文《A Relational Modelof Data for Large Shared Data Banks》和SQL语言被提出开始，到80年代各种商用数据库比如Oracle、MS SQL等的推出，RDBMS在银行、电信等行业得到广泛应用。</p>
+<p>这种数据库的特点就是完全实现了上面论文的关系模型、支持SQL，并且提供ACID特性。对于应用来说，不需要关注事务失败回滚等细节，非常易于使用。然而这个时代的数据库基本是单节点的，要提升性能基本是靠Scale-Up的方式，也就是买更贵的硬件。</p>
+<p>2000年之后，由于互联网的兴起，大型互联网公司需要存储的数据的量非常大，这时候如果还是靠买更贵的硬件来升级，成本上行不通，另外即使成本不是问题，最贵的硬件的性能也不能满足这些公司的需求了。这时候一些互联网公司纷纷投向MySQL，并通过中间件的方式，实现了把大量数据拆分到多个MySQL实例中，满足了对海量数据的存储要求。不过对于单个数据库节点来说，其自身仍然是一个单机版的数据库，只不过是靠中间件实现了路由把多个单节点数据库组合起来了。</p>
+<p>如果套用分布式领域的<a href="http://www.hollischuang.com/archives/666" title="CAP理论" target="_blank" rel="external">CAP理论</a>来分析，RDBMS支持的就是C（一致性）和A（可用性）。</p>
+<h3 id="2-NoSQL"><a href="#2-NoSQL" class="headerlink" title="2.NoSQL"></a>2.NoSQL</h3><p>互联网兴起后，特别是社交等应用的火爆，对存储系统的容量和吞吐量提出了更高的要求，这时候传统RDBMS已经不太适应。结合这类应用的特点（比如不需要强一致性、丢失一些数据是可以容忍的），NoSQL被提出来了。</p>
+<p>NoSQL是一个模糊的概念，我的理解是为了满足一些特殊需求，在原先RDBMS支持的特性上做减法，去掉一些不需要的特性，从而产生的为某种目的特殊进化的数据库。比如为了拥有高水平扩展性，有些NoSQL数据库把事务隔离、Join、FK等特性舍弃；又比如为了追求高吞吐量，只支持K-V类型的数据结构并且只用内存存储。</p>
+<p>NoSQL在互联网公司里被大量地使用，但是核心的（比如交易、订单等牵涉到金钱的，不允许出现数据不一致）业务也还是RDBMS居多，因为那些被NoSQL抛弃的原先RDBMS拥有的特性，实际上是转嫁到了应用层面去handle，而这个是非常复杂的。</p>
+<h3 id="3-NewSQL"><a href="#3-NewSQL" class="headerlink" title="3.NewSQL"></a>3.NewSQL</h3><p>基于上面的理由，这时候有人跳出来说要把SQL给找回来了，于是提出了NewSQL的概念。对于这个概念，个人理解是同时具有RDBMS的ACID特性 + 高水平扩展性的数据库，有些产品还包含内存引擎等等其它东西。对于这个东西，比较大的应用是Google的F1和阿里的Oceanbase（Oceanbase与NoSQL的区别见<a href="https://www.zhihu.com/question/19841579" title="这里" target="_blank" rel="external">这里</a>）。然而这些系统当前都没开源，另外有一些开源系统比如HANA、国人的TiDB等，似乎还没有大型成功的产品案例。</p>
+<h2 id="使用Schemaless方式对T系统进行建模的尝试"><a href="#使用Schemaless方式对T系统进行建模的尝试" class="headerlink" title="使用Schemaless方式对T系统进行建模的尝试"></a>使用Schemaless方式对T系统进行建模的尝试</h2><p>这里选用的是一个典型的Schemaless数据库MongoDB（v3.4.5），GUI查询分析器用的是<a href="https://nosqlbooster.com/" title="MongoBooster" target="_blank" rel="external">MongoBooster</a>，测试用的脚本代码在<a href="https://github.com/yellowb/mongodb_study/tree/master/modeling/chaosAttrs" title="这里" target="_blank" rel="external">这里</a>可以找到。</p>
+<h3 id="建模方式1：直接把任务的所有属性作为数据库记录的所有属性"><a href="#建模方式1：直接把任务的所有属性作为数据库记录的所有属性" class="headerlink" title="建模方式1：直接把任务的所有属性作为数据库记录的所有属性"></a>建模方式1：直接把任务的所有属性作为数据库记录的所有属性</h3><p>这种是最简单最直接的建模方式，其实就是把业务上每个任务的每个属性直接映射到每条记录中去，因为MongoDB不需要预定义Schema，所以不同类型的任务可以直接存储在同一个Collection中。具体例子如下：<br><figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line">// 任务1</div><div class="line">&#123;</div><div class="line">    // 公共属性</div><div class="line">    _id: 1,</div><div class="line">    type: "A",</div><div class="line">    createTime: "20180101",</div><div class="line">    // 私有属性</div><div class="line">    p1: "v1",</div><div class="line">    p2: "v2",</div><div class="line">&#125;</div><div class="line"></div><div class="line">// 任务2</div><div class="line">&#123;</div><div class="line">    // 公共属性</div><div class="line">    _id: 2,</div><div class="line">    type: "B",</div><div class="line">    createTime: "20180102",</div><div class="line">    // 私有属性</div><div class="line">    p3: "v3",</div><div class="line">    p4: "v4",</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可以看到每条记录都是一个扁平的结构，所有任务都存储在一个Collection中而不需要关系它们属性不同的问题，优点是结构简单明了容易理解，但是如果一旦牵涉到检索，缺点会非常明显，下面会详细阐述。</p>
+<p>首先为了测试，写了一个准备测试数据的脚本<a href="https://github.com/yellowb/mongodb_study/blob/master/modeling/chaosAttrs/modeling.js" title="modeling.js" target="_blank" rel="external">modeling.js</a>，在这个脚本中，我预先定义了20种不同的field name，并提供了产生随机对象的函数，这个函数会产生一个包含6个属性的对象，这6个属性是从预先定义的20个field name中随机抽取的，并且它们的field value也是随机产生的字符串或数值。最终我会往MongoDB中插入100W个随机对象，用来模拟T系统中的任务。下面是一些随机对象的例子：<br><figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line">/* 1 createdAt:1/10/2018, 3:11:05 PM*/</div><div class="line">&#123;</div><div class="line">    <span class="attr">"_id"</span> : ObjectId(<span class="string">"5a55bc89fa2fd435b01ab39f"</span>),</div><div class="line">    <span class="attr">"weibo"</span> : <span class="string">"GYEUY-F7PM8"</span>,</div><div class="line">    <span class="attr">"zhihu"</span> : <span class="number">8413.0</span>,</div><div class="line">    <span class="attr">"length"</span> : <span class="string">"2EVPQ-SYZ66"</span>,</div><div class="line">    <span class="attr">"fax"</span> : <span class="string">"E85MP-2U71D"</span>,</div><div class="line">    <span class="attr">"facebook"</span> : <span class="number">9584.0</span></div><div class="line">&#125;,</div><div class="line"></div><div class="line">/* 2 createdAt:1/10/2018, 3:11:05 PM*/</div><div class="line">&#123;</div><div class="line">    <span class="attr">"_id"</span> : ObjectId(<span class="string">"5a55bc89fa2fd435b01ab3a0"</span>),</div><div class="line">    <span class="attr">"grade"</span> : <span class="string">"4G0GO-QXUT1"</span>,</div><div class="line">    <span class="attr">"zhihu"</span> : <span class="number">4534.0</span>,</div><div class="line">    <span class="attr">"fax"</span> : <span class="string">"6HV19-3NVZX"</span>,</div><div class="line">    <span class="attr">"weight"</span> : <span class="number">9027.0</span>,</div><div class="line">    <span class="attr">"size"</span> : <span class="string">"APER8-LGJG9"</span>,</div><div class="line">    <span class="attr">"height"</span> : <span class="number">4765.0</span></div><div class="line">&#125;,</div></pre></td></tr></table></figure></p>
+<p>下面来测试下检索性能，我们通过分析执行计划来进行。代码是<a href="https://github.com/yellowb/mongodb_study/blob/master/modeling/chaosAttrs/modeling_query.js" title="modeling_query.js" target="_blank" rel="external">modeling_query.js</a></p>
+<p>首先在没有任何索引的情况下，我们尝试分析一个等值查询（weibo=’GYEUY-F7PM8’）：<br><figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">db.modeling.find(&#123;<span class="attr">weibo</span>: <span class="string">'GYEUY-F7PM8'</span>&#125;).explain(<span class="string">'executionStats'</span>);</div></pre></td></tr></table></figure></p>
+<p>下面是执行计划：<br><figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">"executionStats" : &#123;</div><div class="line">    "executionSuccess" : true,</div><div class="line">    "nReturned" : 1,</div><div class="line">    "executionTimeMillis" : 451,</div><div class="line">    "totalKeysExamined" : 0,</div><div class="line">    "totalDocsExamined" : 1000000,</div><div class="line">    "executionStages" : &#123;</div><div class="line">        "stage" : "COLLSCAN",</div><div class="line">        "filter" : &#123;</div><div class="line">            "weibo" : &#123;</div><div class="line">                "$eq" : "GYEUY-F7PM8"</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可以看到在一个没有索引的属性上进行等值查询，MongoDB的策略是COLLSCAN，也就是全表扫描，总共扫描了100W行记录，返回了1条记录，花费451ms，这个时间基本上已经很慢了，如果数据量再上一个数量级，那么时间更无法忍受。</p>
+<p>解决办法看起来很简单，就是给weibo这个field建立索引就好了。建立完之后我们再跑一次查询：<br><figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line">"executionStats" : &#123;</div><div class="line">    "executionSuccess" : true,</div><div class="line">    "nReturned" : 1,</div><div class="line">    "executionTimeMillis" : 1,</div><div class="line">    "totalKeysExamined" : 1,</div><div class="line">    "totalDocsExamined" : 1,</div><div class="line">    "executionStages" : &#123;</div><div class="line">        "stage" : "FETCH",</div><div class="line">        "inputStage" : &#123;</div><div class="line">            "stage" : "IXSCAN",</div><div class="line">            "nReturned" : 1,</div><div class="line">            "keyPattern" : &#123;</div><div class="line">                "weibo" : 1</div><div class="line">            &#125;,</div><div class="line">            "indexName" : "weibo_1",</div><div class="line">            "indexBounds" : &#123;</div><div class="line">                "weibo" : [</div><div class="line">                    <span class="string">"[\"GYEUY-F7PM8\", \"GYEUY-F7PM8\"]"</span></div><div class="line">                ]</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可以看到MongoDB的策略是IXSCAN，也就是通过索引检索，只扫描了1个索引项和1条记录就得到了结果，时间开销是1ms。范围查询的效果也是类似的，可以自己跑脚本里的代码。</p>
+<p>可喜可贺！但是如果这时候用户说他又要在另一个Field上做检索，怎么办？我们可以给他在另一个Field上也建立索引。那如果用户说所有Field都要用来检索呢，每个Field建一次索引？先不提索引太多会导致插入变慢的问题，如果用户每新增一个Field，都要我们去人手维护索引，那么工作量也是相当可观。</p>
+<h3 id="建模方式2：把任务的每个属性作为K-V对象存储到属性数组中"><a href="#建模方式2：把任务的每个属性作为K-V对象存储到属性数组中" class="headerlink" title="建模方式2：把任务的每个属性作为K-V对象存储到属性数组中"></a>建模方式2：把任务的每个属性作为K-V对象存储到属性数组中</h3><p>在这种建模方式下，业务上每个任务还是对应到MongoDB中的一条记录，但是跟建模方式1不同的地方在于，我们不直接把任务的属性作为记录的顶层属性存储，而是在记录中创建一个Array，命名其为“attrs”（即Attributes），然后任务的每一个属性（Field name、value）作为一个对象存储到这个数组中。例子如下（代码在<a href="https://github.com/yellowb/mongodb_study/blob/master/modeling/chaosAttrs/modeling_2.js" title="modeling_2.js" target="_blank" rel="external">modeling_2.js</a>）：<br><figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div></pre></td><td class="code"><pre><div class="line">/* 1 createdAt:1/10/2018, 3:54:44 PM*/</div><div class="line">&#123;</div><div class="line">    <span class="attr">"_id"</span> : ObjectId(<span class="string">"5a55c6c482acdb08ecec64ba"</span>),</div><div class="line">    <span class="attr">"attrs"</span> : [</div><div class="line">        &#123;</div><div class="line">            <span class="attr">"facebook"</span> : <span class="string">"LHXQC-PKVAP"</span></div><div class="line">        &#125;,</div><div class="line">        &#123;</div><div class="line">            <span class="attr">"city"</span> : <span class="number">8961.0</span></div><div class="line">        &#125;,</div><div class="line">        &#123;</div><div class="line">            <span class="attr">"email"</span> : <span class="string">"HQUQM-UK04L"</span></div><div class="line">        &#125;,</div><div class="line">        &#123;</div><div class="line">            <span class="attr">"facebook"</span> : <span class="number">5608.0</span></div><div class="line">        &#125;,</div><div class="line">        &#123;</div><div class="line">            <span class="attr">"age"</span> : <span class="string">"917PN-PFE82"</span></div><div class="line">        &#125;,</div><div class="line">        &#123;</div><div class="line">            <span class="attr">"city"</span> : <span class="number">9439.0</span></div><div class="line">        &#125;</div><div class="line">    ]</div><div class="line">&#125;,</div></pre></td></tr></table></figure></p>
+<p>可以看到属性都被放进Array了。那么这样做有什么好处呢？首先要提到的是MongoDB可以对Array建立索引，实际上产生的效果就是对Array里每个元素建立了索引。而且，如果元素是一个对象，那么检索时，匹配条件就是看检索条件跟对象是不是”<strong>完全</strong>“相等，其中包括：Field Name、Field Value、Field的个数、Field的顺序。比如：<br><figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 相等</span></div><div class="line">obj1 = &#123;<span class="attr">age</span>: <span class="number">18</span>, <span class="attr">name</span>: <span class="string">'A'</span>&#125;</div><div class="line">obj2 = &#123;<span class="attr">age</span>: <span class="number">18</span>, <span class="attr">name</span>: <span class="string">'A'</span>&#125;</div><div class="line"></div><div class="line"><span class="comment">// 不相等</span></div><div class="line">obj1 = &#123;<span class="attr">age</span>: <span class="number">18</span>, <span class="attr">name</span>: <span class="string">'A'</span>&#125;</div><div class="line">obj2 = &#123;<span class="attr">name</span>: <span class="string">'A'</span>, <span class="attr">age</span>: <span class="number">18</span>&#125;</div><div class="line">obj3 = &#123;<span class="attr">name</span>: <span class="string">'A'</span>, <span class="attr">age</span>: <span class="number">18</span>, <span class="attr">weight</span>: <span class="number">100</span>&#125;</div></pre></td></tr></table></figure></p>
+<p>基于这个性质，我们在”attrs”上建立索引，那么我们的等值查询可以这样写（代码在<a href="https://github.com/yellowb/mongodb_study/blob/master/modeling/chaosAttrs/modeling_2_query.js" title="modeling_2_query.js" target="_blank" rel="external">modeling_2_query.js</a>）：<br><figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">db.modeling_2.find(&#123;<span class="attr">attrs</span>: &#123;<span class="string">"facebook"</span> : <span class="string">"LHXQC-PKVAP"</span>&#125;&#125;).explain(<span class="string">'executionStats'</span>);</div></pre></td></tr></table></figure></p>
+<p>可以看到我们直接把检索条件（”facebook”=”LHXQC-PKVAP”）作为一个对象传入了，那么MongoDB就会通过索引为我们完全匹配这个对象，找出包含attrs Array中包含{“facebook” : “LHXQC-PKVAP”}这个对象的所有记录。执行计划如下：<br><figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line">"executionStats" : &#123;</div><div class="line">    "executionSuccess" : true,</div><div class="line">    "nReturned" : 1,</div><div class="line">    "executionTimeMillis" : 0,</div><div class="line">    "totalKeysExamined" : 1,</div><div class="line">    "totalDocsExamined" : 1,</div><div class="line">    "executionStages" : &#123;</div><div class="line">        "inputStage" : &#123;</div><div class="line">            "stage" : "IXSCAN",</div><div class="line">            "nReturned" : 1,</div><div class="line">            "keyPattern" : &#123;</div><div class="line">                "attrs" : 1</div><div class="line">            &#125;,</div><div class="line">            "indexName" : "attrs_1",</div><div class="line">            "indexBounds" : &#123;</div><div class="line">                "attrs" : [</div><div class="line">                    <span class="string">"[&#123; facebook: \"LHXQC-PKVAP\" &#125;, &#123; facebook: \"LHXQC-PKVAP\" &#125;]"</span></div><div class="line">                ]</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可以看到只扫描了一个索引项，花费1ms就返回了。如果不加索引，这里要差不多1秒。</p>
+<p>似乎我们解决了快速检索动态变化的属性的问题，但是我们还没测试范围检索呢。范围检索的写法如下，比如我们想找city&gt;9500的记录：<br><figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">db.modeling_2.find(&#123;<span class="attr">attrs</span>: &#123;<span class="attr">$elemMatch</span>: &#123;<span class="string">"city"</span>: &#123;<span class="attr">$gt</span>: <span class="number">9500</span>&#125;&#125;&#125;&#125;);</div></pre></td></tr></table></figure></p>
+<p>但是会发现，这时候索引是不生效的，会走全表扫描。主要原因是MongoDB是把整个属性对象作为一个整体来索引的，如果查询要对比这个对象里的一部分，这时候就无法走索引了，如果一定要支持这种范围检索，就得单独为city这种属性建立索引：<br><figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">db.modeling_2.createIndex(&#123;<span class="string">'attrs.city'</span>: <span class="number">1</span>&#125;);</div></pre></td></tr></table></figure></p>
+<p>这样子对于city&gt;9500这种查询才会生效。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>上面我们探讨了一下用Schemaless数据库对T系统进行建模的思路，对于等值查询来说，是有一种比较完美的方案可以做的，但是对于范围搜索，似乎还没有一种简洁的方案。<br>另外这里只是对建模进行思考，实际项目还要考虑数据一致性、事务等问题，这些东西MongoDB只支持到单条记录级别的，所以完全用它来代替肯定会有不少问题，还是期待NewSQL的实用化吧：）</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2017/12/27/2017-12-27-the-bug-of-java-autoboxing/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="YellowB">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="YellowB's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/12/27/2017-12-27-the-bug-of-java-autoboxing/" itemprop="url">关于Java自动装箱/拆箱的一个坑</a></h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-12-27T16:52:33+08:00">
+                2017-12-27
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>相信对于用过一段时间Java的使用者来说，自动装箱（Autoboxing）和自动拆箱（Autounboxing）应该不是什么陌生的概念了。简单来说就是Java为基本数据类型（int、long、double等·）提供了对应的包装类（Integer、Long、Double等），谁让“Java中一切皆为对象呢”？（滑稽）。<br>依赖自动装箱/拆箱的特性，使得在写代码的时候，可以用比较简洁的方式混合使用基本数据类型和包装类，比如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 啰嗦写法</span></div><div class="line">Integer d = Integer.valueOf(<span class="number">1</span>);</div><div class="line">Integer e = Integer.valueOf(d.intValue() + <span class="number">1</span>);</div><div class="line"></div><div class="line"><span class="comment">// 简洁写法</span></div><div class="line">Integer d = <span class="number">1</span>;</div><div class="line">Integer e = d + <span class="number">1</span>;</div></pre></td></tr></table></figure>
+<p>可以看出，自动装箱/拆箱实际上就是官方提供的一个语法糖，编译器会在背后会自动生成基本数据类型和包装类互转换的代码。这里建议大家读读Java中<a href="http://hg.openjdk.java.net/jdk8/jdk8/jdk/file/687fd7c7986d/src/share/classes/java/lang/Integer.java" title="Integer.java的源码" target="_blank" rel="external">Integer.java的源码</a>，会发现其它奇妙的地方。</p>
+<h1 id="坑"><a href="#坑" class="headerlink" title="坑"></a>坑</h1><p>既然官方给我们提供了这么方便的特性，那么我们用起来是不是就万事大吉了呢？答案是否定的，不小心的话会踩进一些奇怪的坑中，比如下面这2行代码，大家可以先猜猜输出结果是啥：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">System.out.println(((Long) <span class="number">1L</span>) == <span class="number">1</span>);</div><div class="line">System.out.println(<span class="keyword">new</span> Long(<span class="number">1</span>).equals(<span class="number">1</span>));</div></pre></td></tr></table></figure>
+<p>可能初次看有点复杂，以下结合反编译后的结果解释里面发生了什么。对于第一行代码，我们来看其字节码：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 前三行是等号左边</span></div><div class="line"><span class="comment">// 把long常量1压入操作数栈 </span></div><div class="line">LCONST_1</div><div class="line"><span class="comment">// 调用Long.valueOf函数并把刚刚的常量1穿进去作为参数，返回一个包装对象Long(1)</span></div><div class="line">INVOKESTATIC java/lang/Long.valueOf (J)Ljava/lang/Long;</div><div class="line"><span class="comment">// 在这个包装对象Long(1)上调用longValue函数，获得其内部的long值1</span></div><div class="line">INVOKEVIRTUAL java/lang/Long.longValue ()J</div><div class="line"></div><div class="line"><span class="comment">// 后一行是等号右边</span></div><div class="line"><span class="comment">// 把long常量1压入操作数栈（可见等号右边的int 1已经被自动提升成long 1）</span></div><div class="line">LCONST_1</div><div class="line"><span class="comment">// 比较这两个值</span></div><div class="line">LCMP</div></pre></td></tr></table></figure></p>
+<p>可以看到，等号左边是一个自动装箱再拆箱的过程，得到的值就是long 1。等号右边的int 1被自动提升成long 1，所以等号左右是相等的。</p>
+<p>对于第2行代码，这个坑更大了，还是先看字节码：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 头两行，是调用Long的构造函数，对于到new Long(1)</span></div><div class="line">LCONST_1</div><div class="line">INVOKESPECIAL java/lang/Long.&lt;init&gt; (J)V</div><div class="line"></div><div class="line"><span class="comment">// 注意！！！接下来两行调用Integer的包装类生成了一个Integer(1)，而不是Long！</span></div><div class="line">ICONST_1</div><div class="line">INVOKESTATIC java/lang/Integer.valueOf (I)Ljava/lang/Integer;</div><div class="line"></div><div class="line"><span class="comment">// 调用Long(1)的equals函数，把Integer(1)传进去</span></div><div class="line">INVOKEVIRTUAL java/lang/Long.equals (Ljava/lang/Object;)Z</div></pre></td></tr></table></figure></p>
+<p>可见对于equals函数的输入参数，“1”被自动装箱成Integer对象了。接下来看看Long.equals函数里是怎么实现的:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"><span class="comment"> * Compares this object to the specified object.  The result is</span></div><div class="line"><span class="comment"> * &#123;<span class="doctag">@code</span> true&#125; if and only if the argument is not</span></div><div class="line"><span class="comment"> * &#123;<span class="doctag">@code</span> null&#125; and is a &#123;<span class="doctag">@code</span> Long&#125; object that</span></div><div class="line"><span class="comment"> * contains the same &#123;<span class="doctag">@code</span> long&#125; value as this object.</span></div><div class="line"><span class="comment"> *</span></div><div class="line"><span class="comment"> * <span class="doctag">@param</span>   obj   the object to compare with.</span></div><div class="line"><span class="comment"> * <span class="doctag">@return</span>  &#123;<span class="doctag">@code</span> true&#125; if the objects are the same;</span></div><div class="line"><span class="comment"> *          &#123;<span class="doctag">@code</span> false&#125; otherwise.</span></div><div class="line"><span class="comment"> */</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">equals</span><span class="params">(Object obj)</span> </span>&#123;</div><div class="line">    <span class="keyword">if</span> (obj <span class="keyword">instanceof</span> Long) &#123;  <span class="comment">// 由于传入的不是Long对象，所以返回false！</span></div><div class="line">        <span class="keyword">return</span> value == ((Long)obj).longValue();</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>可以看到坑爹的地方在于if判断，由于我们传入的是Integer对象，所以直接返回了false！如果滥用自动装箱/拆箱，并且不清楚源码的实现，很可能会出现一些很难查的bug！</p>
+<p>为了使其返回true，可以修改代码如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">System.out.println(<span class="keyword">new</span> Long(<span class="number">1</span>).equals(<span class="number">1L</span>));</div></pre></td></tr></table></figure></p>
+<p>强制传入1L，自动装箱就能变成Long类型了。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>对于long值，还是写成xxL的形式比较好，这样能保证自动装箱/拆箱时的准确！</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yellowb.me/2017/12/21/2017-12-21-javamail-imapfolder-cache-casue-bug/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1260,7 +1573,7 @@ A8 OK SEARCH completed.
           
             <div class="site-state-item site-state-posts">
               <a href="/archives/">
-                <span class="site-state-item-count">7</span>
+                <span class="site-state-item-count">9</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>
@@ -1273,7 +1586,7 @@ A8 OK SEARCH completed.
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">11</span>
+                <span class="site-state-item-count">12</span>
                 <span class="site-state-item-name">tags</span>
               </a>
             </div>
@@ -1361,7 +1674,7 @@ A8 OK SEARCH completed.
         <div class="copyright" >
   
   &copy; 
-  <span itemprop="copyrightYear">2017</span>
+  <span itemprop="copyrightYear">2018</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

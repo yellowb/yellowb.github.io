@@ -76,7 +76,7 @@
 <link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="Hexo," />
+  <meta name="keywords" content="Java," />
 
 
 
@@ -92,18 +92,18 @@
 
 
 
-<meta name="description" content="问题如果用Github Pages搭建博客并且关联到一个自定义域名(如namecheap之类的域名提供商)时，一般都需要在Github Pages仓库的根目录下建议一个CNAME文件，文件内容是自定义域名。 同时如果是用Hexo生成静态网页的话，一般会用hexo-deployer-git作为部署到Github的工具。但是hexo-deployer-git默认会用force push来提交，也就是说">
-<meta name="keywords" content="Hexo">
+<meta name="description" content="背景相信对于用过一段时间Java的使用者来说，自动装箱（Autoboxing）和自动拆箱（Autounboxing）应该不是什么陌生的概念了。简单来说就是Java为基本数据类型（int、long、double等·）提供了对应的包装类（Integer、Long、Double等），谁让“Java中一切皆为对象呢”？（滑稽）。依赖自动装箱/拆箱的特性，使得在写代码的时候，可以用比较简洁的方式混合使用基本">
+<meta name="keywords" content="Java">
 <meta property="og:type" content="article">
-<meta property="og:title" content="How to fix CNAME file issue in hexo-deployer-git &#x2F; 如何解决Hexo Git Deploy之后CNAME文件丢失的问题">
-<meta property="og:url" content="http://yellowb.me/2017/08/07/2017-08-07-how-to-fix-cname/index.html">
+<meta property="og:title" content="关于Java自动装箱&#x2F;拆箱的一个坑">
+<meta property="og:url" content="http://yellowb.me/2017/12/27/2017-12-27-the-bug-of-java-autoboxing/index.html">
 <meta property="og:site_name" content="YellowB&#39;s Blog">
-<meta property="og:description" content="问题如果用Github Pages搭建博客并且关联到一个自定义域名(如namecheap之类的域名提供商)时，一般都需要在Github Pages仓库的根目录下建议一个CNAME文件，文件内容是自定义域名。 同时如果是用Hexo生成静态网页的话，一般会用hexo-deployer-git作为部署到Github的工具。但是hexo-deployer-git默认会用force push来提交，也就是说">
+<meta property="og:description" content="背景相信对于用过一段时间Java的使用者来说，自动装箱（Autoboxing）和自动拆箱（Autounboxing）应该不是什么陌生的概念了。简单来说就是Java为基本数据类型（int、long、double等·）提供了对应的包装类（Integer、Long、Double等），谁让“Java中一切皆为对象呢”？（滑稽）。依赖自动装箱/拆箱的特性，使得在写代码的时候，可以用比较简洁的方式混合使用基本">
 <meta property="og:locale" content="en">
-<meta property="og:updated_time" content="2017-08-07T06:16:10.317Z">
+<meta property="og:updated_time" content="2018-01-02T07:21:11.998Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="How to fix CNAME file issue in hexo-deployer-git &#x2F; 如何解决Hexo Git Deploy之后CNAME文件丢失的问题">
-<meta name="twitter:description" content="问题如果用Github Pages搭建博客并且关联到一个自定义域名(如namecheap之类的域名提供商)时，一般都需要在Github Pages仓库的根目录下建议一个CNAME文件，文件内容是自定义域名。 同时如果是用Hexo生成静态网页的话，一般会用hexo-deployer-git作为部署到Github的工具。但是hexo-deployer-git默认会用force push来提交，也就是说">
+<meta name="twitter:title" content="关于Java自动装箱&#x2F;拆箱的一个坑">
+<meta name="twitter:description" content="背景相信对于用过一段时间Java的使用者来说，自动装箱（Autoboxing）和自动拆箱（Autounboxing）应该不是什么陌生的概念了。简单来说就是Java为基本数据类型（int、long、double等·）提供了对应的包装类（Integer、Long、Double等），谁让“Java中一切皆为对象呢”？（滑稽）。依赖自动装箱/拆箱的特性，使得在写代码的时候，可以用比较简洁的方式混合使用基本">
 
 
 
@@ -132,13 +132,13 @@
 
 
 
-  <link rel="canonical" href="http://yellowb.me/2017/08/07/2017-08-07-how-to-fix-cname/"/>
+  <link rel="canonical" href="http://yellowb.me/2017/12/27/2017-12-27-the-bug-of-java-autoboxing/"/>
 
 
 
 
 
-  <title>How to fix CNAME file issue in hexo-deployer-git / 如何解决Hexo Git Deploy之后CNAME文件丢失的问题 | YellowB's Blog</title>
+  <title>关于Java自动装箱/拆箱的一个坑 | YellowB's Blog</title>
   
 
 
@@ -271,7 +271,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2017/08/07/2017-08-07-how-to-fix-cname/">
+    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2017/12/27/2017-12-27-the-bug-of-java-autoboxing/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="YellowB">
@@ -288,7 +288,7 @@
 
         
         
-          <h2 class="post-title" itemprop="name headline">How to fix CNAME file issue in hexo-deployer-git / 如何解决Hexo Git Deploy之后CNAME文件丢失的问题</h2>
+          <h2 class="post-title" itemprop="name headline">关于Java自动装箱/拆箱的一个坑</h2>
         
 
         <div class="post-meta">
@@ -300,8 +300,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-07T10:25:33+08:00">
-                2017-08-07
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-12-27T16:52:33+08:00">
+                2017-12-27
               </time>
             
 
@@ -343,10 +343,20 @@
       
 
       
-        <h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>如果用Github Pages搭建博客并且关联到一个自定义域名(如namecheap之类的域名提供商)时，一般都需要在Github Pages仓库的根目录下建议一个<strong>CNAME</strong>文件，文件内容是自定义域名。</p>
-<p>同时如果是用Hexo生成静态网页的话，一般会用<strong>hexo-deployer-git</strong>作为部署到Github的工具。但是<strong>hexo-deployer-git</strong>默认会用<strong>force push</strong>来提交，也就是说它会覆盖掉仓库里原有的数据，包括CNAME文件。</p>
-<h1 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h1><p>根据这个<a href="https://github.com/hexojs/hexo-deployer-git/issues/26" title="Issue" target="_blank" rel="external">Issue</a>，可以把CNAME文件放一份在本地的Hexo工作目录（就是你运行hexo generate / hexo deploy的目录）下的\source目录下。这样每次执行<code>hexo deploy</code>部署到Github时，都会把这个文件拷贝一份上去。问题解决。</p>
-<h1 id="Ref"><a href="#Ref" class="headerlink" title="Ref"></a>Ref</h1><p>如何在namecheap上购买域名并关联到Github Pages可以参考下面这个：<br><a href="http://davidensinger.com/2013/03/setting-the-dns-for-github-pages-on-namecheap/" title="http://davidensinger.com/2013/03/setting-the-dns-for-github-pages-on-namecheap/" target="_blank" rel="external">http://davidensinger.com/2013/03/setting-the-dns-for-github-pages-on-namecheap/</a></p>
+        <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>相信对于用过一段时间Java的使用者来说，自动装箱（Autoboxing）和自动拆箱（Autounboxing）应该不是什么陌生的概念了。简单来说就是Java为基本数据类型（int、long、double等·）提供了对应的包装类（Integer、Long、Double等），谁让“Java中一切皆为对象呢”？（滑稽）。<br>依赖自动装箱/拆箱的特性，使得在写代码的时候，可以用比较简洁的方式混合使用基本数据类型和包装类，比如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 啰嗦写法</span></div><div class="line">Integer d = Integer.valueOf(<span class="number">1</span>);</div><div class="line">Integer e = Integer.valueOf(d.intValue() + <span class="number">1</span>);</div><div class="line"></div><div class="line"><span class="comment">// 简洁写法</span></div><div class="line">Integer d = <span class="number">1</span>;</div><div class="line">Integer e = d + <span class="number">1</span>;</div></pre></td></tr></table></figure>
+<p>可以看出，自动装箱/拆箱实际上就是官方提供的一个语法糖，编译器会在背后会自动生成基本数据类型和包装类互转换的代码。这里建议大家读读Java中<a href="http://hg.openjdk.java.net/jdk8/jdk8/jdk/file/687fd7c7986d/src/share/classes/java/lang/Integer.java" title="Integer.java的源码" target="_blank" rel="external">Integer.java的源码</a>，会发现其它奇妙的地方。</p>
+<h1 id="坑"><a href="#坑" class="headerlink" title="坑"></a>坑</h1><p>既然官方给我们提供了这么方便的特性，那么我们用起来是不是就万事大吉了呢？答案是否定的，不小心的话会踩进一些奇怪的坑中，比如下面这2行代码，大家可以先猜猜输出结果是啥：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">System.out.println(((Long) <span class="number">1L</span>) == <span class="number">1</span>);</div><div class="line">System.out.println(<span class="keyword">new</span> Long(<span class="number">1</span>).equals(<span class="number">1</span>));</div></pre></td></tr></table></figure>
+<p>可能初次看有点复杂，以下结合反编译后的结果解释里面发生了什么。对于第一行代码，我们来看其字节码：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 前三行是等号左边</span></div><div class="line"><span class="comment">// 把long常量1压入操作数栈 </span></div><div class="line">LCONST_1</div><div class="line"><span class="comment">// 调用Long.valueOf函数并把刚刚的常量1穿进去作为参数，返回一个包装对象Long(1)</span></div><div class="line">INVOKESTATIC java/lang/Long.valueOf (J)Ljava/lang/Long;</div><div class="line"><span class="comment">// 在这个包装对象Long(1)上调用longValue函数，获得其内部的long值1</span></div><div class="line">INVOKEVIRTUAL java/lang/Long.longValue ()J</div><div class="line"></div><div class="line"><span class="comment">// 后一行是等号右边</span></div><div class="line"><span class="comment">// 把long常量1压入操作数栈（可见等号右边的int 1已经被自动提升成long 1）</span></div><div class="line">LCONST_1</div><div class="line"><span class="comment">// 比较这两个值</span></div><div class="line">LCMP</div></pre></td></tr></table></figure></p>
+<p>可以看到，等号左边是一个自动装箱再拆箱的过程，得到的值就是long 1。等号右边的int 1被自动提升成long 1，所以等号左右是相等的。</p>
+<p>对于第2行代码，这个坑更大了，还是先看字节码：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 头两行，是调用Long的构造函数，对于到new Long(1)</span></div><div class="line">LCONST_1</div><div class="line">INVOKESPECIAL java/lang/Long.&lt;init&gt; (J)V</div><div class="line"></div><div class="line"><span class="comment">// 注意！！！接下来两行调用Integer的包装类生成了一个Integer(1)，而不是Long！</span></div><div class="line">ICONST_1</div><div class="line">INVOKESTATIC java/lang/Integer.valueOf (I)Ljava/lang/Integer;</div><div class="line"></div><div class="line"><span class="comment">// 调用Long(1)的equals函数，把Integer(1)传进去</span></div><div class="line">INVOKEVIRTUAL java/lang/Long.equals (Ljava/lang/Object;)Z</div></pre></td></tr></table></figure></p>
+<p>可见对于equals函数的输入参数，“1”被自动装箱成Integer对象了。接下来看看Long.equals函数里是怎么实现的:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"><span class="comment"> * Compares this object to the specified object.  The result is</span></div><div class="line"><span class="comment"> * &#123;<span class="doctag">@code</span> true&#125; if and only if the argument is not</span></div><div class="line"><span class="comment"> * &#123;<span class="doctag">@code</span> null&#125; and is a &#123;<span class="doctag">@code</span> Long&#125; object that</span></div><div class="line"><span class="comment"> * contains the same &#123;<span class="doctag">@code</span> long&#125; value as this object.</span></div><div class="line"><span class="comment"> *</span></div><div class="line"><span class="comment"> * <span class="doctag">@param</span>   obj   the object to compare with.</span></div><div class="line"><span class="comment"> * <span class="doctag">@return</span>  &#123;<span class="doctag">@code</span> true&#125; if the objects are the same;</span></div><div class="line"><span class="comment"> *          &#123;<span class="doctag">@code</span> false&#125; otherwise.</span></div><div class="line"><span class="comment"> */</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">equals</span><span class="params">(Object obj)</span> </span>&#123;</div><div class="line">    <span class="keyword">if</span> (obj <span class="keyword">instanceof</span> Long) &#123;  <span class="comment">// 由于传入的不是Long对象，所以返回false！</span></div><div class="line">        <span class="keyword">return</span> value == ((Long)obj).longValue();</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>可以看到坑爹的地方在于if判断，由于我们传入的是Integer对象，所以直接返回了false！如果滥用自动装箱/拆箱，并且不清楚源码的实现，很可能会出现一些很难查的bug！</p>
+<p>为了使其返回true，可以修改代码如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">System.out.println(<span class="keyword">new</span> Long(<span class="number">1</span>).equals(<span class="number">1L</span>));</div></pre></td></tr></table></figure></p>
+<p>强制传入1L，自动装箱就能变成Long类型了。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>对于long值，还是写成xxL的形式比较好，这样能保证自动装箱/拆箱时的准确！</p>
 
       
     </div>
@@ -364,7 +374,7 @@
       
         <div class="post-tags">
           
-            <a href="/tags/Hexo/" rel="tag"># Hexo</a>
+            <a href="/tags/Java/" rel="tag"># Java</a>
           
         </div>
       
@@ -377,8 +387,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2017/08/04/1st-post/" rel="next" title="1st Post">
-                <i class="fa fa-chevron-left"></i> 1st Post
+              <a href="/2017/12/21/2017-12-21-javamail-imapfolder-cache-casue-bug/" rel="next" title="史前巨坑之Javamail IMAPFolder类中的Cache导致打开的Folder Session某些情况下不能获取邮件变化">
+                <i class="fa fa-chevron-left"></i> 史前巨坑之Javamail IMAPFolder类中的Cache导致打开的Folder Session某些情况下不能获取邮件变化
               </a>
             
           </div>
@@ -387,8 +397,8 @@
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/2017/08/08/2017-08-08-make-js-object-constant/" rel="prev" title="如何防止JavaScript属性被修改?">
-                如何防止JavaScript属性被修改? <i class="fa fa-chevron-right"></i>
+              <a href="/2018/01/10/2018-01-10-modeling-in-mongodb-for-chaos-attrs/" rel="prev" title="对“属性不确定的对象”如何进行数据建模的思考(Part 1)">
+                对“属性不确定的对象”如何进行数据建模的思考(Part 1) <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -566,7 +576,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#问题"><span class="nav-number">1.</span> <span class="nav-text">问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#解决方案"><span class="nav-number">2.</span> <span class="nav-text">解决方案</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Ref"><span class="nav-number">3.</span> <span class="nav-text">Ref</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#背景"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#坑"><span class="nav-number">2.</span> <span class="nav-text">坑</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li></ol></div>
             
 
           </div>
