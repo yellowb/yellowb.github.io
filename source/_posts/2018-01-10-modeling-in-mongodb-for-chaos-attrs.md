@@ -84,21 +84,117 @@ NoSQL是一个模糊的概念，我的理解是为了满足一些特殊需求，
 
 NoSQL在互联网公司里被大量地使用，但是核心的（比如交易、订单等牵涉到金钱的，不允许出现数据不一致）业务也还是RDBMS居多，因为那些被NoSQL抛弃的原先RDBMS拥有的特性，实际上是转嫁到了应用层面去handle，而这个是非常复杂的。
 
+### 3.NewSQL
+基于上面的理由，这时候有人跳出来说要把SQL给找回来了，于是提出了NewSQL的概念。对于这个概念，个人理解是同时具有RDBMS的ACID特性 + 高水平扩展性的数据库，有些产品还包含内存引擎等等其它东西。对于这个东西，比较大的应用是Google的F1和阿里的Oceanbase（Oceanbase与NoSQL的区别见[这里](https://www.zhihu.com/question/19841579 "这里")）。然而这些系统当前都没开源，另外有一些开源系统比如HANA、国人的TiDB等，似乎还没有大型成功的产品案例。
 
+## 使用Schemaless方式对T系统进行建模的尝试
+这里选用的是一个典型的Schemaless数据库MongoDB（v3.4.5），GUI查询分析器用的是[MongoBooster](https://nosqlbooster.com/ "MongoBooster")，测试用的脚本代码在[这里](https://github.com/yellowb/mongodb_study/tree/master/modeling/chaosAttrs "这里")可以找到。
 
+### 建模方式1：直接把任务的所有属性作为数据库记录的所有属性
+这种是最简单最直接的建模方式，其实就是把业务上每个任务的每个属性直接映射到每条记录中去，因为MongoDB不需要预定义Schema，所以不同类型的任务可以直接存储在同一个Collection中。具体例子如下：
+```json
+// 任务1
+{
+    // 公共属性
+    _id: 1,
+    type: "A",
+    createTime: "20180101",
+    // 私有属性
+    p1: "v1",
+    p2: "v2",
+}
 
+// 任务2
+{
+    // 公共属性
+    _id: 2,
+    type: "B",
+    createTime: "20180102",
+    // 私有属性
+    p3: "v3",
+    p4: "v4",
+}
+```
+可以看到每条记录都是一个扁平的结构，所有任务都存储在一个Collection中而不需要关系它们属性不同的问题，优点是结构简单明了容易理解，但是如果一旦牵涉到检索，缺点会非常明显，下面会详细阐述。
 
+首先为了测试，写了一个准备测试数据的脚本[modeling.js](https://github.com/yellowb/mongodb_study/blob/master/modeling/chaosAttrs/modeling.js "modeling.js")，在这个脚本中，我预先定义了20种不同的field name，并提供了产生随机对象的函数，这个函数会产生一个包含6个属性的对象，这6个属性是从预先定义的20个field name中随机抽取的，并且它们的field value也是随机产生的字符串或数值。最终我会往MongoDB中插入100W个随机对象，用来模拟T系统中的任务。下面是一些随机对象的例子：
+```json
+/* 1 createdAt:1/10/2018, 3:11:05 PM*/
+{
+    "_id" : ObjectId("5a55bc89fa2fd435b01ab39f"),
+    "weibo" : "GYEUY-F7PM8",
+    "zhihu" : 8413.0,
+    "length" : "2EVPQ-SYZ66",
+    "fax" : "E85MP-2U71D",
+    "facebook" : 9584.0
+},
 
+/* 2 createdAt:1/10/2018, 3:11:05 PM*/
+{
+    "_id" : ObjectId("5a55bc89fa2fd435b01ab3a0"),
+    "grade" : "4G0GO-QXUT1",
+    "zhihu" : 4534.0,
+    "fax" : "6HV19-3NVZX",
+    "weight" : 9027.0,
+    "size" : "APER8-LGJG9",
+    "height" : 4765.0
+},
+```
+下面来测试下检索性能，我们通过分析执行计划来进行。代码是[modeling_query.js](https://github.com/yellowb/mongodb_study/blob/master/modeling/chaosAttrs/modeling_query.js "modeling_query.js")
 
+首先在没有任何索引的情况下，我们尝试分析一个等值查询（weibo='GYEUY-F7PM8'）：
+```javascript
+db.modeling.find({weibo: 'GYEUY-F7PM8'}).explain('executionStats');
+```
+下面是执行计划：
+```json
+    "executionStats" : {
+        "executionSuccess" : true,
+        "nReturned" : 1,
+        "executionTimeMillis" : 451,
+        "totalKeysExamined" : 0,
+        "totalDocsExamined" : 1000000,
+        "executionStages" : {
+            "stage" : "COLLSCAN",
+            "filter" : {
+                "weibo" : {
+                    "$eq" : "GYEUY-F7PM8"
+                }
+            }
+        }
+    }
+```
+可以看到在一个没有索引的属性上进行等值查询，MongoDB的策略是COLLSCAN，也就是全表扫描，总共扫描了100W行记录，返回了1条记录，花费451ms，这个时间基本上已经很慢了，如果数据量再上一个数量级，那么时间更无法忍受。
 
+解决办法看起来很简单，就是给weibo这个field建立索引就好了。建立完之后我们再跑一次查询：
+```json
+    "executionStats" : {
+        "executionSuccess" : true,
+        "nReturned" : 1,
+        "executionTimeMillis" : 1,
+        "totalKeysExamined" : 1,
+        "totalDocsExamined" : 1,
+        "executionStages" : {
+            "stage" : "FETCH",
+            "inputStage" : {
+                "stage" : "IXSCAN",
+                "nReturned" : 1,
+                "keyPattern" : {
+                    "weibo" : 1
+                },
+                "indexName" : "weibo_1",
+                "indexBounds" : {
+                    "weibo" : [
+                        "[\"GYEUY-F7PM8\", \"GYEUY-F7PM8\"]"
+                    ]
+                }
+            }
+        }
+    }
+```
+可以看到MongoDB的策略是IXSCAN，也就是通过索引检索，只扫描了1个索引项和1条记录就得到了结果，时间开销是1ms。范围查询的效果也是类似的，可以自己跑脚本里的代码。
 
-
-
-
-
-
-
-
+可喜可贺！但是如果这时候用户说他又要在另一个Field上做检索，怎么办？我们可以给他在另一个Field上也建立索引。那如果用户说所有Field都要用来检索呢，每个Field建一次索引？先不提索引太多会导致插入变慢的问题，如果用户每新增一个Field，都要我们去人手维护索引，那么工作量也是很可观。
 
 
 
