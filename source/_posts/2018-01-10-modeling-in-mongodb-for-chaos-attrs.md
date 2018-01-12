@@ -194,9 +194,88 @@ db.modeling.find({weibo: 'GYEUY-F7PM8'}).explain('executionStats');
 ```
 可以看到MongoDB的策略是IXSCAN，也就是通过索引检索，只扫描了1个索引项和1条记录就得到了结果，时间开销是1ms。范围查询的效果也是类似的，可以自己跑脚本里的代码。
 
-可喜可贺！但是如果这时候用户说他又要在另一个Field上做检索，怎么办？我们可以给他在另一个Field上也建立索引。那如果用户说所有Field都要用来检索呢，每个Field建一次索引？先不提索引太多会导致插入变慢的问题，如果用户每新增一个Field，都要我们去人手维护索引，那么工作量也是很可观。
+可喜可贺！但是如果这时候用户说他又要在另一个Field上做检索，怎么办？我们可以给他在另一个Field上也建立索引。那如果用户说所有Field都要用来检索呢，每个Field建一次索引？先不提索引太多会导致插入变慢的问题，如果用户每新增一个Field，都要我们去人手维护索引，那么工作量也是相当可观。
 
+### 建模方式2：把任务的每个属性作为K-V对象存储到属性数组中
+在这种建模方式下，业务上每个任务还是对应到MongoDB中的一条记录，但是跟建模方式1不同的地方在于，我们不直接把任务的属性作为记录的顶层属性存储，而是在记录中创建一个Array，命名其为“attrs”（即Attributes），然后任务的每一个属性（Field name、value）作为一个对象存储到这个数组中。例子如下（代码在[modeling_2.js](https://github.com/yellowb/mongodb_study/blob/master/modeling/chaosAttrs/modeling_2.js "modeling_2.js")）：
+```json
+/* 1 createdAt:1/10/2018, 3:54:44 PM*/
+{
+    "_id" : ObjectId("5a55c6c482acdb08ecec64ba"),
+    "attrs" : [
+        {
+            "facebook" : "LHXQC-PKVAP"
+        },
+        {
+            "city" : 8961.0
+        },
+        {
+            "email" : "HQUQM-UK04L"
+        },
+        {
+            "facebook" : 5608.0
+        },
+        {
+            "age" : "917PN-PFE82"
+        },
+        {
+            "city" : 9439.0
+        }
+    ]
+},
+```
+可以看到属性都被放进Array了。那么这样做有什么好处呢？首先要提到的是MongoDB可以对Array建立索引，实际上产生的效果就是对Array里每个元素建立了索引。而且，如果元素是一个对象，那么检索时，匹配条件就是看检索条件跟对象是不是"**完全**"相等，其中包括：Field Name、Field Value、Field的个数、Field的顺序。比如：
+```javascript
+// 相等
+obj1 = {age: 18, name: 'A'}
+obj2 = {age: 18, name: 'A'}
 
+// 不相等
+obj1 = {age: 18, name: 'A'}
+obj2 = {name: 'A', age: 18}
+obj3 = {name: 'A', age: 18, weight: 100}
+```
+基于这个性质，我们在"attrs"上建立索引，那么我们的等值查询可以这样写（代码在[modeling_2_query.js](https://github.com/yellowb/mongodb_study/blob/master/modeling/chaosAttrs/modeling_2_query.js "modeling_2_query.js")）：
+```javascript
+db.modeling_2.find({attrs: {"facebook" : "LHXQC-PKVAP"}}).explain('executionStats');
+```
+可以看到我们直接把检索条件（"facebook"="LHXQC-PKVAP"）作为一个对象传入了，那么MongoDB就会通过索引为我们完全匹配这个对象，找出包含attrs Array中包含{"facebook" : "LHXQC-PKVAP"}这个对象的所有记录。执行计划如下：
+```json
+    "executionStats" : {
+        "executionSuccess" : true,
+        "nReturned" : 1,
+        "executionTimeMillis" : 0,
+        "totalKeysExamined" : 1,
+        "totalDocsExamined" : 1,
+        "executionStages" : {
+            "inputStage" : {
+                "stage" : "IXSCAN",
+                "nReturned" : 1,
+                "keyPattern" : {
+                    "attrs" : 1
+                },
+                "indexName" : "attrs_1",
+                "indexBounds" : {
+                    "attrs" : [
+                        "[{ facebook: \"LHXQC-PKVAP\" }, { facebook: \"LHXQC-PKVAP\" }]"
+                    ]
+                }
+            }
+        }
+    }
+```
+可以看到只扫描了一个索引项，花费1ms就返回了。如果不加索引，这里要差不多1秒。
 
+似乎我们解决了快速检索动态变化的属性的问题，但是我们还没测试范围检索呢。范围检索的写法如下，比如我们想找city>9500的记录：
+```javascript
+db.modeling_2.find({attrs: {$elemMatch: {"city": {$gt: 9500}}}});
+```
+但是会发现，这时候索引是不生效的，会走全表扫描。主要原因是MongoDB是把整个属性对象作为一个整体来索引的，如果查询要对比这个对象里的一部分，这时候就无法走索引了，如果一定要支持这种范围检索，就得单独为city这种属性建立索引：
+```javascript
+db.modeling_2.createIndex({'attrs.city': 1});
+```
+这样子对于city>9500这种查询才会生效。
 
-
+# 总结
+上面我们探讨了一下用Schemaless数据库对T系统进行建模的思路，对于等值查询来说，是有一种比较完美的方案可以做的，但是对于范围搜索，似乎还没有一种简洁的方案。
+另外这里只是对建模进行思考，实际项目还要考虑数据一致性、事务等问题，这些东西MongoDB只支持到单条记录级别的，所以完全用它来代替肯定会有不少问题，还是期待NewSQL的实用化吧：）
