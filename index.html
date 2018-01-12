@@ -271,6 +271,143 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2018/01/12/2018-01-12-java-not-support-encoding-issue/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="YellowB">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="YellowB's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/01/12/2018-01-12-java-not-support-encoding-issue/" itemprop="url">关于Java不支持cp932编码异常"java.nio.charset.UnsupportedCharsetException cp932"的解决办法</a></h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2018-01-12T15:00:00+08:00">
+                2018-01-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>有一个通过Javamail去邮箱读取邮件的Java程序，运行的时候时不时会抛出这种异常：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">Exception in thread <span class="string">"main"</span> java.nio.charset.UnsupportedCharsetException: cp932</div><div class="line">    at java.nio.charset.Charset.forName(Charset.java:<span class="number">531</span>)</div></pre></td></tr></table></figure></p>
+<p>查看日志，发生这种异常时都是读取到有日文的邮件。</p>
+<h1 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h1><p>根据个人经验，应该是解码邮件正文时，邮件的编码格式设定成cp932，故程序尝试用这种字符编码去解码邮件正文，但是缺发现没有一个字符编码名为“cp932”。</p>
+<p>那么cp932到底是什么东西呢？上网搜索了一下，<a href="https://en.wikipedia.org/wiki/Code_page_932_(Microsoft_Windows" target="_blank" rel="external">wiki</a>显示这种字符编码是用在日语环境的，这个也跟先前查看出错邮件发现是日文的情况吻合。那么为什么这种编码在Java中是不支持的呢？</p>
+<p>我们可以查看JDK源码里的<a href="http://grepcode.com/file/repository.grepcode.com/java/root/jdk/openjdk/7-b147/sun/nio/cs/ext/ExtendedCharsets.java/#159" title="这个类" target="_blank" rel="external">这个类</a>，这个类是定义了所有扩展字符编码和它们的alias的。全局搜索发现的确没有定义“cp932”这个字符串，但是查找“932”时，找到了如下定义：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">this</span>.charset(<span class="string">"windows-31j"</span>, <span class="string">"MS932"</span>,</div><div class="line">             <span class="keyword">new</span> String[]&#123;<span class="string">"MS932"</span>, <span class="string">"windows-932"</span>, <span class="string">"csWindows31J"</span>&#125;);</div></pre></td></tr></table></figure></p>
+<p>心想这个MS932是不是跟cp932有一定关系呢？之后又通过搜索，发现<a href="https://stackoverflow.com/questions/18245279/java-io-unsupportedencodingexception-cp932" title="SO上一个问答" target="_blank" rel="external">SO上一个问答</a>，里面有提到cp932不是一个标准的alias，所以没被写进Java源码中，其实本质上它跟MS932是一样的。</p>
+<h1 id="解决办法"><a href="#解决办法" class="headerlink" title="解决办法"></a>解决办法</h1><p>其实有两种方法解决这个问题：</p>
+<h2 id="第一种办法"><a href="#第一种办法" class="headerlink" title="第一种办法"></a>第一种办法</h2><p>其实就是显式地捕捉UnsupportedCharsetException这种异常，然后判断里面携带的异常编码名称是不是“cp932”，如果是的话，就显式地用“MS932”去解码，如果是其它异常，就走其它异常处理流程。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">try</span> &#123;</div><div class="line">    <span class="comment">// 假设这里的逻辑是原先的 part.getContent()</span></div><div class="line">    <span class="comment">// ...</span></div><div class="line">    <span class="comment">// ...</span></div><div class="line">    <span class="comment">// 碰到cp932! 抛异常!</span></div><div class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> UnsupportedCharsetException(<span class="string">"cp932"</span>);</div><div class="line">&#125; <span class="keyword">catch</span> (UnsupportedCharsetException ue) &#123;</div><div class="line">    <span class="comment">// 先判断是不是真的cp932.</span></div><div class="line">    <span class="keyword">if</span>(ue.getCharsetName().equalsIgnoreCase(<span class="string">"cp932"</span>)) &#123;</div><div class="line">        System.out.println(<span class="string">"发现cp932编码!"</span>);</div><div class="line">        <span class="comment">// 通过获取输入流, 强行指定MS932编码格式做解码</span></div><div class="line">        InputStream is = <span class="keyword">new</span> ByteArrayInputStream(barray);  <span class="comment">// 获得一个输入流, 在下面用自定义的编码格式做解码</span></div><div class="line">        String s2 = <span class="keyword">null</span>;</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            s2 = IOUtils.toString(is, Charset.forName(<span class="string">"MS932"</span>));    <span class="comment">// JDK支持MS932!</span></div><div class="line">            System.out.println(s2);</div><div class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</div><div class="line">            e.printStackTrace();</div><div class="line">        &#125; <span class="keyword">finally</span> &#123;</div><div class="line">            IOUtils.closeQuietly(is);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">else</span> &#123;</div><div class="line">        <span class="comment">// 可能是其余我们没遇到的奇怪的编码!</span></div><div class="line">        <span class="keyword">throw</span> ue;</div><div class="line">    &#125;</div></pre></td></tr></table></figure>
+<h2 id="第二种办法"><a href="#第二种办法" class="headerlink" title="第二种办法"></a>第二种办法</h2><p>第一种办法需要显式地捕捉判断这种异常，会导致很多地方都要包try-catch块，写法十分不优雅。其实我们可以自己定义一个CharsetProvider类，专门对应这种cp932编码，然后在这个CharsetProvider类中重新路由到MS932编码就可以了：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> java.nio.charset.*;</div><div class="line"><span class="keyword">import</span> java.nio.charset.spi.*;</div><div class="line"><span class="keyword">import</span> java.util.*;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">CP932CharsetProvider</span> <span class="keyword">extends</span> <span class="title">CharsetProvider</span> </span>&#123;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String badCharset = <span class="string">"cp932"</span>;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String goodCharset = <span class="string">"MS932"</span>;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> Charset <span class="title">charsetForName</span><span class="params">(String charset)</span> </span>&#123;</div><div class="line">        <span class="keyword">if</span> (charset.equalsIgnoreCase(badCharset))</div><div class="line">            <span class="keyword">return</span> Charset.forName(goodCharset);</div><div class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> Iterator&lt;Charset&gt; <span class="title">charsets</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> Collections.emptyIterator();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>然后还要在项目的META-INF文件夹下，新建一个services文件夹，在其之下建一个文本文件名为java.nio.charset.spi.CharsetProvider。在这个文件中，把我们刚刚写的CharsetProvider类的全名（包括package）写在里面，比如我的：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">test.charset.CP932CharsetProvider</div></pre></td></tr></table></figure></p>
+<p>这样在其它Java代码中直接调用“cp932”编码就不会出错啦，最终会路由到MS932编码来解码。</p>
+<p>所有代码在：</p>
+<ol>
+<li><a href="https://github.com/yellowb/email-engine-poc/tree/master/PocRedis/src/main/java/test/charset" title="Java代码" target="_blank" rel="external">Java代码</a></li>
+<li><a href="https://github.com/yellowb/email-engine-poc/tree/master/PocRedis/src/main/resources/META-INF/services" title="META-INF" target="_blank" rel="external">META-INF</a></li>
+</ol>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yellowb.me/2018/01/10/2018-01-10-modeling-in-mongodb-for-chaos-attrs/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1573,7 +1710,7 @@ A8 OK SEARCH completed.
           
             <div class="site-state-item site-state-posts">
               <a href="/archives/">
-                <span class="site-state-item-count">9</span>
+                <span class="site-state-item-count">10</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>

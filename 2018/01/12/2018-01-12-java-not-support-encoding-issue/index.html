@@ -92,18 +92,18 @@
 
 
 
-<meta name="description" content="背景相信对于用过一段时间Java的使用者来说，自动装箱（Autoboxing）和自动拆箱（Autounboxing）应该不是什么陌生的概念了。简单来说就是Java为基本数据类型（int、long、double等·）提供了对应的包装类（Integer、Long、Double等），谁让“Java中一切皆为对象呢”？（滑稽）。依赖自动装箱/拆箱的特性，使得在写代码的时候，可以用比较简洁的方式混合使用基本">
+<meta name="description" content="背景有一个通过Javamail去邮箱读取邮件的Java程序，运行的时候时不时会抛出这种异常：12Exception in thread &quot;main&quot; java.nio.charset.UnsupportedCharsetException: cp932    at java.nio.charset.Charset.forName(Charset.java:531) 查看日志，发生这种异常时都是读取">
 <meta name="keywords" content="Java">
 <meta property="og:type" content="article">
-<meta property="og:title" content="关于Java自动装箱&#x2F;拆箱的一个坑">
-<meta property="og:url" content="http://yellowb.me/2017/12/27/2017-12-27-the-bug-of-java-autoboxing/index.html">
+<meta property="og:title" content="关于Java不支持cp932编码异常&quot;java.nio.charset.UnsupportedCharsetException cp932&quot;的解决办法">
+<meta property="og:url" content="http://yellowb.me/2018/01/12/2018-01-12-java-not-support-encoding-issue/index.html">
 <meta property="og:site_name" content="YellowB&#39;s Blog">
-<meta property="og:description" content="背景相信对于用过一段时间Java的使用者来说，自动装箱（Autoboxing）和自动拆箱（Autounboxing）应该不是什么陌生的概念了。简单来说就是Java为基本数据类型（int、long、double等·）提供了对应的包装类（Integer、Long、Double等），谁让“Java中一切皆为对象呢”？（滑稽）。依赖自动装箱/拆箱的特性，使得在写代码的时候，可以用比较简洁的方式混合使用基本">
+<meta property="og:description" content="背景有一个通过Javamail去邮箱读取邮件的Java程序，运行的时候时不时会抛出这种异常：12Exception in thread &quot;main&quot; java.nio.charset.UnsupportedCharsetException: cp932    at java.nio.charset.Charset.forName(Charset.java:531) 查看日志，发生这种异常时都是读取">
 <meta property="og:locale" content="en">
-<meta property="og:updated_time" content="2018-01-02T07:21:11.998Z">
+<meta property="og:updated_time" content="2018-01-12T08:50:14.183Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="关于Java自动装箱&#x2F;拆箱的一个坑">
-<meta name="twitter:description" content="背景相信对于用过一段时间Java的使用者来说，自动装箱（Autoboxing）和自动拆箱（Autounboxing）应该不是什么陌生的概念了。简单来说就是Java为基本数据类型（int、long、double等·）提供了对应的包装类（Integer、Long、Double等），谁让“Java中一切皆为对象呢”？（滑稽）。依赖自动装箱/拆箱的特性，使得在写代码的时候，可以用比较简洁的方式混合使用基本">
+<meta name="twitter:title" content="关于Java不支持cp932编码异常&quot;java.nio.charset.UnsupportedCharsetException cp932&quot;的解决办法">
+<meta name="twitter:description" content="背景有一个通过Javamail去邮箱读取邮件的Java程序，运行的时候时不时会抛出这种异常：12Exception in thread &quot;main&quot; java.nio.charset.UnsupportedCharsetException: cp932    at java.nio.charset.Charset.forName(Charset.java:531) 查看日志，发生这种异常时都是读取">
 
 
 
@@ -132,13 +132,13 @@
 
 
 
-  <link rel="canonical" href="http://yellowb.me/2017/12/27/2017-12-27-the-bug-of-java-autoboxing/"/>
+  <link rel="canonical" href="http://yellowb.me/2018/01/12/2018-01-12-java-not-support-encoding-issue/"/>
 
 
 
 
 
-  <title>关于Java自动装箱/拆箱的一个坑 | YellowB's Blog</title>
+  <title>关于Java不支持cp932编码异常"java.nio.charset.UnsupportedCharsetException cp932"的解决办法 | YellowB's Blog</title>
   
 
 
@@ -271,7 +271,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2017/12/27/2017-12-27-the-bug-of-java-autoboxing/">
+    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2018/01/12/2018-01-12-java-not-support-encoding-issue/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="YellowB">
@@ -288,7 +288,7 @@
 
         
         
-          <h2 class="post-title" itemprop="name headline">关于Java自动装箱/拆箱的一个坑</h2>
+          <h2 class="post-title" itemprop="name headline">关于Java不支持cp932编码异常"java.nio.charset.UnsupportedCharsetException cp932"的解决办法</h2>
         
 
         <div class="post-meta">
@@ -300,8 +300,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-12-27T16:52:33+08:00">
-                2017-12-27
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2018-01-12T15:00:00+08:00">
+                2018-01-12
               </time>
             
 
@@ -343,20 +343,24 @@
       
 
       
-        <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>相信对于用过一段时间Java的使用者来说，自动装箱（Autoboxing）和自动拆箱（Autounboxing）应该不是什么陌生的概念了。简单来说就是Java为基本数据类型（int、long、double等·）提供了对应的包装类（Integer、Long、Double等），谁让“Java中一切皆为对象呢”？（滑稽）。<br>依赖自动装箱/拆箱的特性，使得在写代码的时候，可以用比较简洁的方式混合使用基本数据类型和包装类，比如：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 啰嗦写法</span></div><div class="line">Integer d = Integer.valueOf(<span class="number">1</span>);</div><div class="line">Integer e = Integer.valueOf(d.intValue() + <span class="number">1</span>);</div><div class="line"></div><div class="line"><span class="comment">// 简洁写法</span></div><div class="line">Integer d = <span class="number">1</span>;</div><div class="line">Integer e = d + <span class="number">1</span>;</div></pre></td></tr></table></figure>
-<p>可以看出，自动装箱/拆箱实际上就是官方提供的一个语法糖，编译器会在背后会自动生成基本数据类型和包装类互转换的代码。这里建议大家读读Java中<a href="http://hg.openjdk.java.net/jdk8/jdk8/jdk/file/687fd7c7986d/src/share/classes/java/lang/Integer.java" title="Integer.java的源码" target="_blank" rel="external">Integer.java的源码</a>，会发现其它奇妙的地方。</p>
-<h1 id="坑"><a href="#坑" class="headerlink" title="坑"></a>坑</h1><p>既然官方给我们提供了这么方便的特性，那么我们用起来是不是就万事大吉了呢？答案是否定的，不小心的话会踩进一些奇怪的坑中，比如下面这2行代码，大家可以先猜猜输出结果是啥：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">System.out.println(((Long) <span class="number">1L</span>) == <span class="number">1</span>);</div><div class="line">System.out.println(<span class="keyword">new</span> Long(<span class="number">1</span>).equals(<span class="number">1</span>));</div></pre></td></tr></table></figure>
-<p>可能初次看有点复杂，以下结合反编译后的结果解释里面发生了什么。对于第一行代码，我们来看其字节码：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 前三行是等号左边</span></div><div class="line"><span class="comment">// 把long常量1压入操作数栈 </span></div><div class="line">LCONST_1</div><div class="line"><span class="comment">// 调用Long.valueOf函数并把刚刚的常量1穿进去作为参数，返回一个包装对象Long(1)</span></div><div class="line">INVOKESTATIC java/lang/Long.valueOf (J)Ljava/lang/Long;</div><div class="line"><span class="comment">// 在这个包装对象Long(1)上调用longValue函数，获得其内部的long值1</span></div><div class="line">INVOKEVIRTUAL java/lang/Long.longValue ()J</div><div class="line"></div><div class="line"><span class="comment">// 后一行是等号右边</span></div><div class="line"><span class="comment">// 把long常量1压入操作数栈（可见等号右边的int 1已经被自动提升成long 1）</span></div><div class="line">LCONST_1</div><div class="line"><span class="comment">// 比较这两个值</span></div><div class="line">LCMP</div></pre></td></tr></table></figure></p>
-<p>可以看到，等号左边是一个自动装箱再拆箱的过程，得到的值就是long 1。等号右边的int 1被自动提升成long 1，所以等号左右是相等的。</p>
-<p>对于第2行代码，这个坑更大了，还是先看字节码：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 头两行，是调用Long的构造函数，对于到new Long(1)</span></div><div class="line">LCONST_1</div><div class="line">INVOKESPECIAL java/lang/Long.&lt;init&gt; (J)V</div><div class="line"></div><div class="line"><span class="comment">// 注意！！！接下来两行调用Integer的包装类生成了一个Integer(1)，而不是Long！</span></div><div class="line">ICONST_1</div><div class="line">INVOKESTATIC java/lang/Integer.valueOf (I)Ljava/lang/Integer;</div><div class="line"></div><div class="line"><span class="comment">// 调用Long(1)的equals函数，把Integer(1)传进去</span></div><div class="line">INVOKEVIRTUAL java/lang/Long.equals (Ljava/lang/Object;)Z</div></pre></td></tr></table></figure></p>
-<p>可见对于equals函数的输入参数，“1”被自动装箱成Integer对象了。接下来看看Long.equals函数里是怎么实现的:</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"><span class="comment"> * Compares this object to the specified object.  The result is</span></div><div class="line"><span class="comment"> * &#123;<span class="doctag">@code</span> true&#125; if and only if the argument is not</span></div><div class="line"><span class="comment"> * &#123;<span class="doctag">@code</span> null&#125; and is a &#123;<span class="doctag">@code</span> Long&#125; object that</span></div><div class="line"><span class="comment"> * contains the same &#123;<span class="doctag">@code</span> long&#125; value as this object.</span></div><div class="line"><span class="comment"> *</span></div><div class="line"><span class="comment"> * <span class="doctag">@param</span>   obj   the object to compare with.</span></div><div class="line"><span class="comment"> * <span class="doctag">@return</span>  &#123;<span class="doctag">@code</span> true&#125; if the objects are the same;</span></div><div class="line"><span class="comment"> *          &#123;<span class="doctag">@code</span> false&#125; otherwise.</span></div><div class="line"><span class="comment"> */</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">equals</span><span class="params">(Object obj)</span> </span>&#123;</div><div class="line">    <span class="keyword">if</span> (obj <span class="keyword">instanceof</span> Long) &#123;  <span class="comment">// 由于传入的不是Long对象，所以返回false！</span></div><div class="line">        <span class="keyword">return</span> value == ((Long)obj).longValue();</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>可以看到坑爹的地方在于if判断，由于我们传入的是Integer对象，所以直接返回了false！如果滥用自动装箱/拆箱，并且不清楚源码的实现，很可能会出现一些很难查的bug！</p>
-<p>为了使其返回true，可以修改代码如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">System.out.println(<span class="keyword">new</span> Long(<span class="number">1</span>).equals(<span class="number">1L</span>));</div></pre></td></tr></table></figure></p>
-<p>强制传入1L，自动装箱就能变成Long类型了。</p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>对于long值，还是写成xxL的形式比较好，这样能保证自动装箱/拆箱时的准确！</p>
+        <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>有一个通过Javamail去邮箱读取邮件的Java程序，运行的时候时不时会抛出这种异常：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">Exception in thread <span class="string">"main"</span> java.nio.charset.UnsupportedCharsetException: cp932</div><div class="line">    at java.nio.charset.Charset.forName(Charset.java:<span class="number">531</span>)</div></pre></td></tr></table></figure></p>
+<p>查看日志，发生这种异常时都是读取到有日文的邮件。</p>
+<h1 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h1><p>根据个人经验，应该是解码邮件正文时，邮件的编码格式设定成cp932，故程序尝试用这种字符编码去解码邮件正文，但是缺发现没有一个字符编码名为“cp932”。</p>
+<p>那么cp932到底是什么东西呢？上网搜索了一下，<a href="https://en.wikipedia.org/wiki/Code_page_932_(Microsoft_Windows" target="_blank" rel="external">wiki</a>显示这种字符编码是用在日语环境的，这个也跟先前查看出错邮件发现是日文的情况吻合。那么为什么这种编码在Java中是不支持的呢？</p>
+<p>我们可以查看JDK源码里的<a href="http://grepcode.com/file/repository.grepcode.com/java/root/jdk/openjdk/7-b147/sun/nio/cs/ext/ExtendedCharsets.java/#159" title="这个类" target="_blank" rel="external">这个类</a>，这个类是定义了所有扩展字符编码和它们的alias的。全局搜索发现的确没有定义“cp932”这个字符串，但是查找“932”时，找到了如下定义：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">this</span>.charset(<span class="string">"windows-31j"</span>, <span class="string">"MS932"</span>,</div><div class="line">             <span class="keyword">new</span> String[]&#123;<span class="string">"MS932"</span>, <span class="string">"windows-932"</span>, <span class="string">"csWindows31J"</span>&#125;);</div></pre></td></tr></table></figure></p>
+<p>心想这个MS932是不是跟cp932有一定关系呢？之后又通过搜索，发现<a href="https://stackoverflow.com/questions/18245279/java-io-unsupportedencodingexception-cp932" title="SO上一个问答" target="_blank" rel="external">SO上一个问答</a>，里面有提到cp932不是一个标准的alias，所以没被写进Java源码中，其实本质上它跟MS932是一样的。</p>
+<h1 id="解决办法"><a href="#解决办法" class="headerlink" title="解决办法"></a>解决办法</h1><p>其实有两种方法解决这个问题：</p>
+<h2 id="第一种办法"><a href="#第一种办法" class="headerlink" title="第一种办法"></a>第一种办法</h2><p>其实就是显式地捕捉UnsupportedCharsetException这种异常，然后判断里面携带的异常编码名称是不是“cp932”，如果是的话，就显式地用“MS932”去解码，如果是其它异常，就走其它异常处理流程。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">try</span> &#123;</div><div class="line">    <span class="comment">// 假设这里的逻辑是原先的 part.getContent()</span></div><div class="line">    <span class="comment">// ...</span></div><div class="line">    <span class="comment">// ...</span></div><div class="line">    <span class="comment">// 碰到cp932! 抛异常!</span></div><div class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> UnsupportedCharsetException(<span class="string">"cp932"</span>);</div><div class="line">&#125; <span class="keyword">catch</span> (UnsupportedCharsetException ue) &#123;</div><div class="line">    <span class="comment">// 先判断是不是真的cp932.</span></div><div class="line">    <span class="keyword">if</span>(ue.getCharsetName().equalsIgnoreCase(<span class="string">"cp932"</span>)) &#123;</div><div class="line">        System.out.println(<span class="string">"发现cp932编码!"</span>);</div><div class="line">        <span class="comment">// 通过获取输入流, 强行指定MS932编码格式做解码</span></div><div class="line">        InputStream is = <span class="keyword">new</span> ByteArrayInputStream(barray);  <span class="comment">// 获得一个输入流, 在下面用自定义的编码格式做解码</span></div><div class="line">        String s2 = <span class="keyword">null</span>;</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            s2 = IOUtils.toString(is, Charset.forName(<span class="string">"MS932"</span>));    <span class="comment">// JDK支持MS932!</span></div><div class="line">            System.out.println(s2);</div><div class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</div><div class="line">            e.printStackTrace();</div><div class="line">        &#125; <span class="keyword">finally</span> &#123;</div><div class="line">            IOUtils.closeQuietly(is);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">else</span> &#123;</div><div class="line">        <span class="comment">// 可能是其余我们没遇到的奇怪的编码!</span></div><div class="line">        <span class="keyword">throw</span> ue;</div><div class="line">    &#125;</div></pre></td></tr></table></figure>
+<h2 id="第二种办法"><a href="#第二种办法" class="headerlink" title="第二种办法"></a>第二种办法</h2><p>第一种办法需要显式地捕捉判断这种异常，会导致很多地方都要包try-catch块，写法十分不优雅。其实我们可以自己定义一个CharsetProvider类，专门对应这种cp932编码，然后在这个CharsetProvider类中重新路由到MS932编码就可以了：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> java.nio.charset.*;</div><div class="line"><span class="keyword">import</span> java.nio.charset.spi.*;</div><div class="line"><span class="keyword">import</span> java.util.*;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">CP932CharsetProvider</span> <span class="keyword">extends</span> <span class="title">CharsetProvider</span> </span>&#123;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String badCharset = <span class="string">"cp932"</span>;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String goodCharset = <span class="string">"MS932"</span>;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> Charset <span class="title">charsetForName</span><span class="params">(String charset)</span> </span>&#123;</div><div class="line">        <span class="keyword">if</span> (charset.equalsIgnoreCase(badCharset))</div><div class="line">            <span class="keyword">return</span> Charset.forName(goodCharset);</div><div class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> Iterator&lt;Charset&gt; <span class="title">charsets</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> Collections.emptyIterator();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>然后还要在项目的META-INF文件夹下，新建一个services文件夹，在其之下建一个文本文件名为java.nio.charset.spi.CharsetProvider。在这个文件中，把我们刚刚写的CharsetProvider类的全名（包括package）写在里面，比如我的：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">test.charset.CP932CharsetProvider</div></pre></td></tr></table></figure></p>
+<p>这样在其它Java代码中直接调用“cp932”编码就不会出错啦，最终会路由到MS932编码来解码。</p>
+<p>所有代码在：</p>
+<ol>
+<li><a href="https://github.com/yellowb/email-engine-poc/tree/master/PocRedis/src/main/java/test/charset" title="Java代码" target="_blank" rel="external">Java代码</a></li>
+<li><a href="https://github.com/yellowb/email-engine-poc/tree/master/PocRedis/src/main/resources/META-INF/services" title="META-INF" target="_blank" rel="external">META-INF</a></li>
+</ol>
 
       
     </div>
@@ -387,8 +391,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2017/12/21/2017-12-21-javamail-imapfolder-cache-casue-bug/" rel="next" title="史前巨坑之Javamail IMAPFolder类中的Cache导致打开的Folder Session某些情况下不能获取邮件变化">
-                <i class="fa fa-chevron-left"></i> 史前巨坑之Javamail IMAPFolder类中的Cache导致打开的Folder Session某些情况下不能获取邮件变化
+              <a href="/2018/01/10/2018-01-10-modeling-in-mongodb-for-chaos-attrs/" rel="next" title="对“属性不确定的对象”如何进行数据建模的思考(Part 1)">
+                <i class="fa fa-chevron-left"></i> 对“属性不确定的对象”如何进行数据建模的思考(Part 1)
               </a>
             
           </div>
@@ -396,10 +400,6 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2018/01/10/2018-01-10-modeling-in-mongodb-for-chaos-attrs/" rel="prev" title="对“属性不确定的对象”如何进行数据建模的思考(Part 1)">
-                对“属性不确定的对象”如何进行数据建模的思考(Part 1) <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -576,7 +576,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#背景"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#坑"><span class="nav-number">2.</span> <span class="nav-text">坑</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#背景"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#分析"><span class="nav-number">2.</span> <span class="nav-text">分析</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#解决办法"><span class="nav-number">3.</span> <span class="nav-text">解决办法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#第一种办法"><span class="nav-number">3.1.</span> <span class="nav-text">第一种办法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#第二种办法"><span class="nav-number">3.2.</span> <span class="nav-text">第二种办法</span></a></li></ol></li></ol></div>
             
 
           </div>
