@@ -63,7 +63,7 @@ tags:
 
 以前曾经参加过一次MongoDB的会议，会上有网易游戏的运维哥哥说到，以前他们用的是MySQL存储游戏角色数据，而游戏策划经常对角色属性进行更改（比如加技能、加装备等），每次变更都要对MySQL表加列，使得他们非常痛苦。后来他们迁移到MongoDB，由于MongoDB是Schemaless的，所以可以随时加新的属性，并且每条记录的属性都可以不一样，这个迁移让他们运维的难度大大降低，引用他们的原话就是“舒服多了”。
 
-那么如果我们像网易游戏哥哥一样采用Schemaless的数据库来建模，是不是会有一些不同？下面先来对比一下不同类型数据库的特点。
+那么如果我们像网易游戏哥哥一样采用 Schemaless 的数据库来建模，是不是会有一些不同？下面先来对比一下不同类型数据库的特点。
 
 ## 不同类型数据库的对比
 ![](https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20180110/db-roadmap.jpg)
