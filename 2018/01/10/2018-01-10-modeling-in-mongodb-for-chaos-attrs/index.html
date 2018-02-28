@@ -102,7 +102,7 @@
 <meta property="og:locale" content="en">
 <meta property="og:image" content="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20180110/rdbms_ER.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20180110/db-roadmap.jpg">
-<meta property="og:updated_time" content="2018-01-11T08:28:02.390Z">
+<meta property="og:updated_time" content="2018-01-15T02:51:43.267Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="对“属性不确定的对象”如何进行数据建模的思考(Part 1)">
 <meta name="twitter:description" content="背景部门里有同学负责一个任务分派系统（以下简称T系统），其用户主要是公司里的客服人员。T系统的作用主要是为这些客服人员提供可视化的任务搜索、任务分派、任务追踪功能，简单来说用户打开T系统后就能看到自己手头上的任务或者新生成还没被人拿走的任务，然后可以对它们进行操作，并且在任务状态改变时可以在UI上看到他们的变化。 这里要着重点出的是：T系统里有很多不同类型的任务，而不同类型的任务的属性是不一样的（">
@@ -377,7 +377,7 @@
 </ol>
 <h1 id="一些思考"><a href="#一些思考" class="headerlink" title="一些思考"></a>一些思考</h1><p>如果不对用户需求做任何改变，仅仅从数据存储和性能的层面来看，当前T系统的数据建模是否合适？</p>
 <p>以前曾经参加过一次MongoDB的会议，会上有网易游戏的运维哥哥说到，以前他们用的是MySQL存储游戏角色数据，而游戏策划经常对角色属性进行更改（比如加技能、加装备等），每次变更都要对MySQL表加列，使得他们非常痛苦。后来他们迁移到MongoDB，由于MongoDB是Schemaless的，所以可以随时加新的属性，并且每条记录的属性都可以不一样，这个迁移让他们运维的难度大大降低，引用他们的原话就是“舒服多了”。</p>
-<p>那么如果我们像网易游戏哥哥一样采用Schemaless的数据库来建模，是不是会有一些不同？下面先来对比一下不同类型数据库的特点。</p>
+<p>那么如果我们像网易游戏哥哥一样采用 Schemaless 的数据库来建模，是不是会有一些不同？下面先来对比一下不同类型数据库的特点。</p>
 <h2 id="不同类型数据库的对比"><a href="#不同类型数据库的对比" class="headerlink" title="不同类型数据库的对比"></a>不同类型数据库的对比</h2><p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20180110/db-roadmap.jpg" alt=""></p>
 <h3 id="1-RDBMS"><a href="#1-RDBMS" class="headerlink" title="1.RDBMS"></a>1.RDBMS</h3><p>从上世纪70年代E.F.Codd的论文《A Relational Modelof Data for Large Shared Data Banks》和SQL语言被提出开始，到80年代各种商用数据库比如Oracle、MS SQL等的推出，RDBMS在银行、电信等行业得到广泛应用。</p>
 <p>这种数据库的特点就是完全实现了上面论文的关系模型、支持SQL，并且提供ACID特性。对于应用来说，不需要关注事务失败回滚等细节，非常易于使用。然而这个时代的数据库基本是单节点的，要提升性能基本是靠Scale-Up的方式，也就是买更贵的硬件。</p>
@@ -532,7 +532,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives/">
-                <span class="site-state-item-count">10</span>
+                <span class="site-state-item-count">11</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>
@@ -545,7 +545,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">12</span>
+                <span class="site-state-item-count">13</span>
                 <span class="site-state-item-name">tags</span>
               </a>
             </div>
