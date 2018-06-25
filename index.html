@@ -271,6 +271,162 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2018/06/25/2018-06-25-chrome-extension-dev-notes/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="YellowB">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="YellowB's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/06/25/2018-06-25-chrome-extension-dev-notes/" itemprop="url">第一次开发Chrome扩展踩过的坑</a></h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2018-06-25T18:26:04+08:00">
+                2018-06-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>前段时间由于个人一个痛点，并且也没试过开发Chrome扩展，于是决定动手开始整。下面是项目背景：</p>
+<blockquote>
+<p>背景：此插件是由个人痛点，并结合珠海公交微信公众号启发而做的。</p>
+<p>痛点：微信公众号上能查询某个公交路线上的车子运行的实时数据，但如果我在<strong>用电脑</strong>，比如在加班，过一段时间后要去赶公交，为了节省等车的时间，我想得知车子是不是快要到我上车的站点，由于微信公众号没有<strong>到站提醒</strong>功能，我必须不断刷手机微信，十分麻烦。考虑到用电脑时一般都会开着浏览器，浏览器插件也能实现一些数据抓取和弹出通知的功能，并且安装也比较方便，所以以浏览器插件的方式实现。</p>
+<p>这个Chrome扩展能实现如下功能:</p>
+<ol>
+<li>同时订阅多条公交线路，每条线路可以订阅多个不同站点；</li>
+<li>程序会在公交车接近指定站点时，在屏幕右下角弹出通知（暂设定是还有&lt;=3站距离时触发通知，当然你觉得太烦也可以关掉通知功能）；</li>
+<li>可以查看订阅线路上所有公交车的运行状况(自动刷新)。</li>
+</ol>
+</blockquote>
+<p><strong>项目的源码和使用方法可以在<a href="https://github.com/yellowb/zhuhai-bus-notifier" title="Github" target="_blank" rel="external">Github</a>上找到。</strong></p>
+<p>由于程序的逻辑比较简单，无非就是用户的设定存储在localStorage（chrome extension API）中，再启动一个定时任务定时通过ajax从某些webservice拿数据，然后进行计算，计算结果通过UI显示出来，技术栈就是html + js + css，所以不会对程序是如何实现的进行详细记录，但是虽说技术栈简单，然而Google在其之伤又多加了些限制，导致跟一般的网页开发有点不一样，这篇文章主要是记录一些第一次做Chrome扩展时遇到的坑。</p>
+<h1 id="踩坑"><a href="#踩坑" class="headerlink" title="踩坑"></a>踩坑</h1><h2 id="No-1-console-log-到底打印到哪里去了？"><a href="#No-1-console-log-到底打印到哪里去了？" class="headerlink" title="No.1 console.log()到底打印到哪里去了？"></a>No.1 console.log()到底打印到哪里去了？</h2><p>实际上开始着手做项目前，看官网教程前我先上网找了几个Sample观摩了下，有一个Sample安装到Chrome之后会在浏览器右上角多一个图标，鼠标点击会弹出一个UI，UI中其实就是html页面。我试着添加一些js代码，比如给按钮加listener去用console.log()打印点东西，这时候突然感觉懵逼了：<strong>console.log()打印的东西到底在哪里？貌似也不在当前tab的console里…</strong></p>
+<p>先说答案：弹出的UI有自己独立的console，需要在弹出的UI区域上点鼠标右键，在菜单中选“检查”，这时会弹出一个新的Chrome devTools窗口，在这个devTools的console中能看到代码打印的信息。参考<a href="https://stackoverflow.com/questions/14858909/cannot-get-chrome-popup-js-to-use-console-log" title="Stack Overflow" target="_blank" rel="external">Stack Overflow</a>。</p>
+<p>实际上要搞清楚这个问题，需要弄明白Chrome扩展的组成部分和它们之间的关系。一般可以包含以下几部分（只罗列本项目包含的，实际上还可以有其它东西）：</p>
+<ol>
+<li><strong>popup</strong>：鼠标左键点击<strong>Chrome右上角扩展的图标后弹出的UI</strong>，实际上包含了一个入口html和相关的js、css。<strong>有自己独立的DOM和js运行环境</strong>（也就是不能用js直接访问到其它部分的js变量）。popup<strong>每弹出一次都会初始化一次</strong>html和js代码，然后一般失去焦点时UI会消失，同时html和js都被销毁，已打开的devTools会自动关闭。devTools用上面的方法打开。代码有改动只要重新弹出popup即可生效，不需要reload扩展。</li>
+<li><strong>background</strong>：可以理解成插件后台运行的逻辑（js代码），没有UI，在这个项目中我把数据初始化和定时任务放在这里。<strong>有自己独立的DOM和js运行环境</strong>，devTools需要从Chrome扩展管理页面进去点击该扩展的background.html选项打开。一般来说只要浏览器没关闭，background中的代码都会一直运行，但Chrome自己有机制会杀掉闲置扩展的background代码，<strong>可以通过一些配置强行指定Chrome保持其一直运行</strong>（后面会提到）。代码有改动需要手工在Chrome扩展管理页面<strong>点reload按钮才能生效</strong>，如果想清除localStorage的数据还要卸载再重新安装。</li>
+<li><strong>options</strong>：扩展可以提供一个“设定”页面给用户填数据，这个页面可以通过鼠标右键点击Chrome右上角扩展的图标，在弹出菜单中点击“选项”进入，其包含了一个入口html和相关的js、css。<strong>有自己独立的DOM和js运行环境</strong>，devTools在这个页面按F12即可打开。代码有改动只要刷新页面即可。</li>
+</ol>
+<p>可以看到，每一部分都有自己独立的js运行环境，所以如果要查看console的话，也要进入相应的devTools才行。至于不同部分如何通讯，参考<a href="https://developer.chrome.com/extensions/messaging" title="消息机制" target="_blank" rel="external">消息机制</a>。</p>
+<h2 id="No-2-为什么点击button不能触发onclick事件中的代码？"><a href="#No-2-为什么点击button不能触发onclick事件中的代码？" class="headerlink" title="No.2 为什么点击button不能触发onclick事件中的代码？"></a>No.2 为什么点击button不能触发onclick事件中的代码？</h2><p>同样是上一个问题中的Sample，我尝试在popup中的html代码中添加一个button，并绑定一个onclick事件，让它触发js文件里的一个函数，类似这样的代码：<br><figure class="highlight html"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">p</span> <span class="attr">id</span>=<span class="string">"demo"</span>&gt;</span>=a<span class="tag">&lt;/<span class="name">p</span>&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">button</span> <span class="attr">type</span>=<span class="string">"button"</span> <span class="attr">onclick</span>=<span class="string">"count()"</span>&gt;</span>Count<span class="tag">&lt;/<span class="name">button</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></div></pre></td></tr></table></figure></p>
+<p>但是点击button时对应的函数缺没有触发，console中有这么一行红字出现：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">Refused to execute inline script because it violates the following Content Security Policy directive: &quot;script-src &apos;self&apos; chrome-extension-resource:&quot;.</div></pre></td></tr></table></figure></p>
+<p><a href="https://stackoverflow.com/questions/17601615/the-chrome-extension-popup-is-not-working-click-events-are-not-handled" title="Stack Overflow给出的答案" target="_blank" rel="external">Stack Overflow给出的答案</a>显示原因是这种方式违反了Google的Content Security Policy，这个CSP规定了不能执行inline script。</p>
+<p>所以说如果想给页面元素绑定事件，就用如下这种通过js代码的方式：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">var</span> a=<span class="number">0</span>;</div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">count</span>(<span class="params"></span>) </span>&#123;</div><div class="line">    a++;</div><div class="line">    <span class="built_in">document</span>.getElementById(<span class="string">'demo'</span>).textContent = a;</div><div class="line">&#125;</div><div class="line"><span class="built_in">document</span>.getElementById(<span class="string">'do-count'</span>).onclick = count;</div></pre></td></tr></table></figure>
+<h2 id="No-3-加载音效会让popup弹出变得非常缓慢？"><a href="#No-3-加载音效会让popup弹出变得非常缓慢？" class="headerlink" title="No.3 加载音效会让popup弹出变得非常缓慢？"></a>No.3 加载音效会让popup弹出变得非常缓慢？</h2><p>因为想做一个功能就是公交快到站时用Chrome的notification API在桌面右下角弹出一个通知框，并播放一个小音效。播放影响基本就是参照<a href="https://stackoverflow.com/questions/14917531/how-to-implement-a-notification-popup-with-sound-in-chrome-extension" title="这里" target="_blank" rel="external">这里</a>，把音频文件加载成一个Audio对象，再在它身上调用play()就行了。<br><figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">let</span> yourSound = <span class="keyword">new</span> Audio(<span class="string">'yourSound.mp3'</span>);</div><div class="line">yourSound.play();</div></pre></td></tr></table></figure></p>
+<p>我用的音频文件大小100KB左右，是网上找的，原先代码是每次弹出通知时会加载一次这个音频文件，后来想着能不能在启动时就加载了后面不要每次都重复加载，就把上面的代码放进common代码中，但是由于common代码也被popup引用了，同时popup每次弹出都会初始化一次代码，所以导致每次点击图标后都要等1秒左右才能看到popup的UI（说实话我也不明白为什么多加载了一个100KB的音频会慢这么多，不加载时秒开）。</p>
+<p>于是就不把音频文件的加载放到common中了，回退到每次弹出消息时再加载。</p>
+<p>实际上最后项目中把这个音频删掉了，因为实际使用时发现公交车非常频密，导致音效老是响，烦死了（滑稽）</p>
+<h2 id="No-4-background中写定时任务用哪种方式？"><a href="#No-4-background中写定时任务用哪种方式？" class="headerlink" title="No.4 background中写定时任务用哪种方式？"></a>No.4 background中写定时任务用哪种方式？</h2><p>由于这个项目需要定时从webservice抓取数据，所以就牵涉到实现定时任务的问题。官方提供并推荐了一种基于消息触发的方式实现定时任务：<a href="https://developer.chrome.com/extensions/alarms" title="Alarm" target="_blank" rel="external">Alarm</a>。</p>
+<p>但是这种方式有个问题：在development mode（也就是在Chrome中打开开发者模式用文件夹路径的方式安装扩展）下可以指定定时任务的时间间隔到秒级别，但是在production mode（也就是打包压缩发布到chrome store上），这个间隔最小只能到1分钟，官方给出的理由是基于性能考虑。</p>
+<p>然而1分钟对于我这个应用来说有时候是一个过长的时间，对于有时候交通十分顺畅（比如深夜）的时候，1分钟足够公交车跑相当远一段距离了。经过调整和试用，感觉把时间间隔定在20s是一个比较合理的值（这完全是经验主义）。</p>
+<p>后来用Google搜索相关资料，Stack Overflow上有大神提到如果确定定时任务是要永远跑下去的话，完全可以用js原生的setInterval来代替Chrome的Alarm API。另外一点就是要防止Chrome把background杀掉，这个可以指定manifest.json里的一个值（persistent = true）即可，不过得心里十分清楚这个程序不会占太多资源：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">"background": &#123;</div><div class="line">    "scripts": [</div><div class="line">      <span class="string">"js/background/background-entry.js"</span></div><div class="line">    ],</div><div class="line">    "persistent": true</div><div class="line">  &#125;,</div></pre></td></tr></table></figure>
+<p>最后是采用了Stack Overflow上提供的这种方式，经过观察浏览器不间断运行了一周时间，这个扩展也没什么异常发生，资源占用也没什么问题。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yellowb.me/2018/02/25/2018-02-25-Java-nio-basic/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1630,129 +1786,6 @@ A8 OK SEARCH completed.
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2017/08/07/2017-08-07-how-to-fix-cname/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="YellowB">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/uploads/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="YellowB's Blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h2 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/08/07/2017-08-07-how-to-fix-cname/" itemprop="url">How to fix CNAME file issue in hexo-deployer-git / 如何解决Hexo Git Deploy之后CNAME文件丢失的问题</a></h2>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-07T10:25:33+08:00">
-                2017-08-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>如果用Github Pages搭建博客并且关联到一个自定义域名(如namecheap之类的域名提供商)时，一般都需要在Github Pages仓库的根目录下建议一个<strong>CNAME</strong>文件，文件内容是自定义域名。</p>
-<p>同时如果是用Hexo生成静态网页的话，一般会用<strong>hexo-deployer-git</strong>作为部署到Github的工具。但是<strong>hexo-deployer-git</strong>默认会用<strong>force push</strong>来提交，也就是说它会覆盖掉仓库里原有的数据，包括CNAME文件。</p>
-<h1 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h1><p>根据这个<a href="https://github.com/hexojs/hexo-deployer-git/issues/26" title="Issue" target="_blank" rel="external">Issue</a>，可以把CNAME文件放一份在本地的Hexo工作目录（就是你运行hexo generate / hexo deploy的目录）下的\source目录下。这样每次执行<code>hexo deploy</code>部署到Github时，都会把这个文件拷贝一份上去。问题解决。</p>
-<h1 id="Ref"><a href="#Ref" class="headerlink" title="Ref"></a>Ref</h1><p>如何在namecheap上购买域名并关联到Github Pages可以参考下面这个：<br><a href="http://davidensinger.com/2013/03/setting-the-dns-for-github-pages-on-namecheap/" title="http://davidensinger.com/2013/03/setting-the-dns-for-github-pages-on-namecheap/" target="_blank" rel="external">http://davidensinger.com/2013/03/setting-the-dns-for-github-pages-on-namecheap/</a></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -1807,7 +1840,7 @@ A8 OK SEARCH completed.
           
             <div class="site-state-item site-state-posts">
               <a href="/archives/">
-                <span class="site-state-item-count">11</span>
+                <span class="site-state-item-count">12</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>
@@ -1820,7 +1853,7 @@ A8 OK SEARCH completed.
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">13</span>
+                <span class="site-state-item-count">14</span>
                 <span class="site-state-item-name">tags</span>
               </a>
             </div>

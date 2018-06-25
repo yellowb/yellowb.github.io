@@ -271,6 +271,129 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2017/08/07/2017-08-07-how-to-fix-cname/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="YellowB">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="YellowB's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/08/07/2017-08-07-how-to-fix-cname/" itemprop="url">How to fix CNAME file issue in hexo-deployer-git / 如何解决Hexo Git Deploy之后CNAME文件丢失的问题</a></h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-07T10:25:33+08:00">
+                2017-08-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>如果用Github Pages搭建博客并且关联到一个自定义域名(如namecheap之类的域名提供商)时，一般都需要在Github Pages仓库的根目录下建议一个<strong>CNAME</strong>文件，文件内容是自定义域名。</p>
+<p>同时如果是用Hexo生成静态网页的话，一般会用<strong>hexo-deployer-git</strong>作为部署到Github的工具。但是<strong>hexo-deployer-git</strong>默认会用<strong>force push</strong>来提交，也就是说它会覆盖掉仓库里原有的数据，包括CNAME文件。</p>
+<h1 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h1><p>根据这个<a href="https://github.com/hexojs/hexo-deployer-git/issues/26" title="Issue" target="_blank" rel="external">Issue</a>，可以把CNAME文件放一份在本地的Hexo工作目录（就是你运行hexo generate / hexo deploy的目录）下的\source目录下。这样每次执行<code>hexo deploy</code>部署到Github时，都会把这个文件拷贝一份上去。问题解决。</p>
+<h1 id="Ref"><a href="#Ref" class="headerlink" title="Ref"></a>Ref</h1><p>如何在namecheap上购买域名并关联到Github Pages可以参考下面这个：<br><a href="http://davidensinger.com/2013/03/setting-the-dns-for-github-pages-on-namecheap/" title="http://davidensinger.com/2013/03/setting-the-dns-for-github-pages-on-namecheap/" target="_blank" rel="external">http://davidensinger.com/2013/03/setting-the-dns-for-github-pages-on-namecheap/</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yellowb.me/2017/08/04/1st-post/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -432,7 +555,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives/">
-                <span class="site-state-item-count">11</span>
+                <span class="site-state-item-count">12</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>
@@ -445,7 +568,7 @@
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">13</span>
+                <span class="site-state-item-count">14</span>
                 <span class="site-state-item-name">tags</span>
               </a>
             </div>
