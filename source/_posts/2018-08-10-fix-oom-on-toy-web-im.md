@@ -229,7 +229,7 @@ ReadMsgModel.distinct('msgId', {
 
 另外这个Web IM的数据建模也有非常大的问题，现代IM基本不会每个人 * 每条消息 * 每看一次都新增1条记录的吧，这数据量得直接n的3次方了。。。由于聊天消息天然就是有序的，并且发出之后就不能改变，实际上完全可以用一个游标记录某一个用户在某一个Topic里阅读到第几条消息即可，序号小于当前游标的为已读，大于的就是未读，即可大大节省存储空间，编程实现也很简单。。。
 
-(https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20180810/new-data-model.png)
+![](https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20180810/new-data-model.png)
 
 如果一定要用msgId集合运算，比如要实现用户能手动确认看了哪条消息，可能后面的看了，但前面的没确认，这种需求就无法用游标来实现了，得靠msgId做过滤。但是即使是这种情况完全可以用[Bloom filter](https://llimllib.github.io/bloomfilter-tutorial/ "Bloom filter")来实现啊，超少内存占用，超快运算速度有木有！
 
