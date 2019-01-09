@@ -271,7 +271,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2018/08/10/2018-08-10-fix-oom-on-toy-web-im/">
+    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2019/01/09/2019-01-09-hot-reload-and-multiple-instances-on-intellij-plugin-dev/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="YellowB">
@@ -290,7 +290,175 @@
         
           <h2 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/08/10/2018-08-10-fix-oom-on-toy-web-im/" itemprop="url">修复一个玩具性质WebIM系统OOM故障的过程与对IM系统设计的一些思考</a></h2>
+                <a class="post-title-link" href="/2019/01/09/2019-01-09-hot-reload-and-multiple-instances-on-intellij-plugin-dev/" itemprop="url">IntelliJ插件开发环境搭建:代码热部署与多开实例</a></h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2019-01-09T16:52:33+08:00">
+                2019-01-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h1><p>默认情况下的IntelliJ环境插件开发方式不支持在一个IDE中启动多个IntelliJ实例和代码热部署。本文着重解决以下2个问题：</p>
+<ol>
+<li>如何便捷地在一个IDE中启动多个插件（IntelliJ）实例；</li>
+<li>如何配置JRebel使得代码被修改后能热部署到运行的实例中，不须每次改完代码都重启实例。这里要求IntelliJ的版本不得比<strong>2018.1</strong>新，否则JRebel无法启动，原因后面会分析。</li>
+</ol>
+<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><h2 id="项目需求"><a href="#项目需求" class="headerlink" title="项目需求"></a>项目需求</h2><p>想做一个IntelliJ插件，这个插件需要具有<strong>点到点通讯</strong>的能力（含单对单、单对多，也就是A、B两台机器的IntelliJ安装了这个插件后，这两个分别位于A和B上的插件实例能通过网络交换数据）。</p>
+<h2 id="一些IntelliJ插件开发的基本概念"><a href="#一些IntelliJ插件开发的基本概念" class="headerlink" title="一些IntelliJ插件开发的基本概念"></a>一些IntelliJ插件开发的基本概念</h2><p>IntelliJ插件的开发需要在IntelliJ中创建一种名为<strong>“IntelliJ Platform Plugin”</strong>的工程，这里不讲如何开发，如要学习请移步至<a href="http://www.jetbrains.org/intellij/sdk/docs/basics.html" title="官网" target="_blank" rel="external">官网</a>，以下内容默认你懂得最基本的插件开发知识。这里要提的是在开发过程中，每次运行与调试都会启动另外一个IntelliJ实例（或者叫Sandbox），你写的插件代码会被打包到这个新启动的IntelliJ实例里运行，前后两个IntelliJ实例不会相互影响，它们的关系如下图：</p>
+<p><code>[写插件代码的IntelliJ] ---Run/Debug插件---&gt; [运行插件代码的IntelliJ (Sandbox)]</code></p>
+<p>这种形式有点像做Web开发时，把代码打包到Web容器中运行的模式，只不过在这里容器是另一个IntelliJ实例而已。</p>
+<h2 id="待解决的痛点"><a href="#待解决的痛点" class="headerlink" title="待解决的痛点"></a>待解决的痛点</h2><ol>
+<li>由于IntelliJ默认情况下无法支持<strong>代码热部署</strong>，导致修改完代码之后想看效果必须重新启动IntelliJ实例，但是IntelliJ的启动时间相对来说还是比较长的，这样每次都要浪费很多等待时间会让开发过程比较痛苦，如果能够做到修改代码不用重启IntelliJ实例就能看到效果，那么开发效率会大大提高。</li>
+<li>基于功能需求，必须要在我的本地开发环境上能够启动2个或以上的IntelliJ实例，来模拟网络交互，但是IntelliJ默认只能启动一个，所以必须找到办法来支持<strong>“多开”</strong>。</li>
+</ol>
+<h1 id="痛点一-代码热部署"><a href="#痛点一-代码热部署" class="headerlink" title="痛点一: 代码热部署"></a>痛点一: 代码热部署</h1><p>这里使用了JRebel来实现开发时的代码热部署。JRebel是<a href="https://zeroturnaround.com/" title="ZeroTurnaround公司" target="_blank" rel="external">ZeroTurnaround公司</a>的产品，主要功能是通过实现JVM上class的热替换来缩短开发时等待容器重启动的时间，支持各种Java Web容器，Tomcat、Weblogic等… 然而它的license非常贵，1人 * 1年的价格高达550美金，激活前可以免费用30日，不过公司买了它的license，不用白不用 :)</p>
+<p>JRebel的配置还是比较简单的，我参考了这个<a href="https://benkiew.wordpress.com/2017/09/09/how-to-develop-your-intellij-idea-plugins-even-faster-with-jrebel/" title="blog" target="_blank" rel="external">blog</a>。但是却遇到JRebel无法运行的问题，所以在给出具体配置步骤前，先来看看这个问题。</p>
+<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>由于之前我一直打开IntelliJ IDEA的Auto Update功能，所以用的都是最新版本（本文写作时间为2019-01-09，最新版本为2018.3.1[Build: 183.4588.61]）。当我把JRebel激活、配置到项目的Run Configuration后尝试运行插件，却报下面这个错误：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div></pre></td><td class="code"><pre><div class="line">2019-01-09 11:25:09 JRebel:  Starting logging to file: C:\Users\<span class="comment">###\.jrebel\jrebel.log</span></div><div class="line">2019-01-09 11:25:09 JRebel:  </div><div class="line">2019-01-09 11:25:09 JRebel:  <span class="comment">#############################################################</span></div><div class="line">2019-01-09 11:25:09 JRebel:  </div><div class="line">2019-01-09 11:25:09 JRebel:  JRebel Agent 2018.2.5-SNAPSHOT (201901081547)</div><div class="line">2019-01-09 11:25:09 JRebel:  (c) Copyright ZeroTurnaround AS, Estonia, Tartu.</div><div class="line">2019-01-09 11:25:09 JRebel:  </div><div class="line">2019-01-09 11:25:09 JRebel:  Over the last 1 days JRebel prevented</div><div class="line">2019-01-09 11:25:09 JRebel:  at least 0 redeploys/restarts saving you about 0 hours.</div><div class="line">2019-01-09 11:25:09 JRebel:  </div><div class="line">2019-01-09 11:25:09 JRebel:  License acquired from License Server: <span class="comment">###</span></div><div class="line">2019-01-09 11:25:09 JRebel:  </div><div class="line">2019-01-09 11:25:09 JRebel:  Licensed to <span class="comment">###.</span></div><div class="line">2019-01-09 11:25:09 JRebel:  </div><div class="line">2019-01-09 11:25:09 JRebel:  </div><div class="line">2019-01-09 11:25:09 JRebel:  <span class="comment">#############################################################</span></div><div class="line">2019-01-09 11:25:09 JRebel:  </div><div class="line">2019-01-09 11:25:10 JRebel: ERROR Class <span class="string">'com.intellij.util.lang.UrlClassLoader'</span> could not be processed by org.zeroturnaround.javarebel.integration.intellij.IntelliJClassLoaderClassBytecodeProcessor@null: org.zeroturnaround.bundled.javassist.CannotCompileException: [<span class="built_in">source</span> error] getResource(java.lang.String,boolean) not found <span class="keyword">in</span> com.intellij.util.lang.ClassPath</div><div class="line">  at org.zeroturnaround.bundled.javassist.CtNewMethod.make(SourceFile:84)</div><div class="line">  at org.zeroturnaround.bundled.javassist.CtNewMethod.make(SourceFile:50)</div><div class="line">  at org.zeroturnaround.javarebel.integration.support.CBPs<span class="variable">$DirectProcessorImpl</span>.addMethod(SourceFile:210)</div><div class="line">  at org.zeroturnaround.javarebel.integration.intellij.IntelliJClassLoaderClassBytecodeProcessor.process(SourceFile:28)</div><div class="line">  at org.zeroturnaround.javarebel.integration.support.JavassistClassBytecodeProcessor.process(SourceFile:111)</div><div class="line">  at org.zeroturnaround.javarebel.integration.support.CacheAwareJavassistClassBytecodeProcessor.process(SourceFile:34)</div><div class="line">  at org.zeroturnaround.javarebel.integration.support.JavassistClassBytecodeProcessor.process(SourceFile:75)</div><div class="line">  at com.zeroturnaround.javarebel.xy.a(SourceFile:372)</div><div class="line">  at com.zeroturnaround.javarebel.xy.a(SourceFile:299)</div><div class="line">  at com.zeroturnaround.javarebel.SDKIntegrationImpl.runBytecodeProcessors(SourceFile:47)</div><div class="line">  at com.zeroturnaround.javarebel.vf.transform(SourceFile:134)</div><div class="line">  at java.lang.ClassLoader.defineClass(ClassLoader.java:42009)</div><div class="line">  at java.security.SecureClassLoader.defineClass(SecureClassLoader.java:142)</div><div class="line">  at java.net.URLClassLoader.defineClass(URLClassLoader.java:467)</div><div class="line">  at java.net.URLClassLoader.access<span class="variable">$100</span>(URLClassLoader.java:73)</div><div class="line">  at java.net.URLClassLoader<span class="variable">$1</span>.run(URLClassLoader.java:368)</div><div class="line">  at java.net.URLClassLoader<span class="variable">$1</span>.run(URLClassLoader.java:362)</div><div class="line">  at java.security.AccessController.doPrivileged(Native Method)</div><div class="line">  at java.net.URLClassLoader.findClass(URLClassLoader.java:361)</div><div class="line">  at java.lang.ClassLoader.loadClass(ClassLoader.java:424)</div><div class="line">  at sun.misc.Launcher<span class="variable">$AppClassLoader</span>.loadClass(Launcher.java:338)</div><div class="line">  at java.lang.ClassLoader.loadClass(ClassLoader.java:357)</div><div class="line">  at com.intellij.ide.Bootstrap.main(Bootstrap.java:19)</div><div class="line">  at com.intellij.idea.Main.main(Main.java:60)</div><div class="line">Caused by: compile error: getResource(java.lang.String,boolean) not found <span class="keyword">in</span> com.intellij.util.lang.ClassPath</div><div class="line">  at org.zeroturnaround.bundled.javassist.compiler.TypeChecker.atMethodCallCore(SourceFile:777)</div><div class="line">  at org.zeroturnaround.bundled.javassist.compiler.TypeChecker.atCallExpr(SourceFile:723)</div><div class="line">  at org.zeroturnaround.bundled.javassist.compiler.JvstTypeChecker.atCallExpr(SourceFile:170)</div><div class="line">  at org.zeroturnaround.bundled.javassist.compiler.ast.CallExpr.accept(SourceFile:49)</div><div class="line">  at org.zeroturnaround.bundled.javassist.compiler.CodeGen.doTypeCheck(SourceFile:266)</div><div class="line">  at org.zeroturnaround.bundled.javassist.compiler.CodeGen.atDeclarator(SourceFile:773)</div><div class="line">  at org.zeroturnaround.bundled.javassist.compiler.ast.Declarator.accept(SourceFile:103)</div><div class="line">  at org.zeroturnaround.bundled.javassist.compiler.CodeGen.atStmnt(SourceFile:383)</div><div class="line">  at org.zeroturnaround.bundled.javassist.compiler.ast.Stmnt.accept(SourceFile:53)</div><div class="line">  at org.zeroturnaround.bundled.javassist.compiler.CodeGen.atStmnt(SourceFile:383)</div><div class="line">  at org.zeroturnaround.bundled.javassist.compiler.ast.Stmnt.accept(SourceFile:53)</div><div class="line">  at org.zeroturnaround.bundled.javassist.compiler.CodeGen.atMethodBody(SourceFile:321)</div><div class="line">  at org.zeroturnaround.bundled.javassist.compiler.CodeGen.atMethodDecl(SourceFile:303)</div><div class="line">  at org.zeroturnaround.bundled.javassist.compiler.ast.MethodDecl.accept(SourceFile:47)</div><div class="line">  at org.zeroturnaround.bundled.javassist.compiler.Javac.compileMethod(SourceFile:175)</div><div class="line">  at org.zeroturnaround.bundled.javassist.compiler.Javac.compile(SourceFile:102)</div><div class="line">  at org.zeroturnaround.bundled.javassist.CtNewMethod.make(SourceFile:79)</div><div class="line">  ... 23 more</div></pre></td></tr></table></figure>
+<p>看到这个一脸懵逼，把错误信息敲入Google也找不到有用的信息。看了一下错误信息，说的是一个叫<code>com.intellij.util.lang.ClassPath</code>的类里有个<code>getResource(java.lang.String,boolean)</code>方法找不到。心想难道是JRebel依赖了IntelliJ自身的类，但是这些类的方法签名变了导致不兼容了？</p>
+<p>于是先尝试了升级JRebel的版本，当前使用的已经是最新的stable版本（2018.2.4），尝试切换到更新的nightly build版本，还是同样的错误。</p>
+<p>如果一方升级还是不兼容，那能不能让另一份（IntelliJ）降级呢？IntelliJ的官网上是可以找到旧版本的，但是应该用哪个版本呢？考虑到IntelliJ的社区版是开源的，于是上Github找到这个类：<a href="https://github.com/JetBrains/intellij-community/blob/master/platform/util/src/com/intellij/util/lang/ClassPath.java" title="ClassPath.java" target="_blank" rel="external">ClassPath.java</a>，通过它的历史，发现在2018年4月的某次<a href="https://github.com/JetBrains/intellij-community/commit/66101d0dc4f5821168699b058623981476322ace" title="commit" target="_blank" rel="external">commit</a>中，把原先存在的<code>getResource(java.lang.String,boolean)</code>方法改成<code>getResource(java.lang.String)</code>了：</p>
+<p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/github_1.png" alt=""></p>
+<p>看这次commit的tags，可以看到都有哪些版本的IntelliJ包含了这个代码，其中最旧的build号为<code>idea/182.5107.16</code>。于是上IntelliJ的<a href="https://www.jetbrains.com/idea/download/previous.html" title="下载页面" target="_blank" rel="external">下载页面</a>，可以查到<code>idea/182.5107.16</code>对应的就是<strong>2018.2.6</strong>这个版本，也就是说我们只需要用<strong>2018.1.7</strong>就可以了。</p>
+<h2 id="正确配置步骤"><a href="#正确配置步骤" class="headerlink" title="正确配置步骤"></a>正确配置步骤</h2><p>（1）在IntelliJ的<a href="https://www.jetbrains.com/idea/download/previous.html" title="下载页面" target="_blank" rel="external">下载页面</a>下载<strong>2018.1.7</strong>版本并安装。收费版和社区版皆可，我这里下的是社区版，因为开发插件用不上收费版多出来的功能。</p>
+<p>（2）在Settings中安装JRebel的插件，免费试用30日或正确激活：<br><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/jrebel_setup_0.png" alt=""></p>
+<p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/jrebel_setup_1.png" alt=""></p>
+<p>（3）由于我们需要用命令行参数的方式启动JRebel，所以需要找到JRebel插件安装后自带的核心动态链接库的路径（windows下使用jrebel64.dll，Linux下用so，MAC下用dylib）</p>
+<p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/jrebel_setup_2.png" alt=""></p>
+<p>（4）在项目的Run Configuration中的VM启动参数最后加上<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">-agentpath:&lt;你的路径&gt;\jrebel64.dll</div></pre></td></tr></table></figure></p>
+<p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/jrebel_setup_3.png" alt=""></p>
+<p>（5）这样配置就完成了。可以测试一下，先启动插件，可以看到控制台有JRebel正常启动的信息：</p>
+<p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/jrebel_demo.png" alt=""></p>
+<p>（6）这时候修改一下代码，把原先输出到对话框的字符串从“Hi”改成“Hello”，保存并编译一下，可以看到控制台会输出JRebel热替换的信息，并且对话框的字符串的确变了：</p>
+<p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/jrebel_demo_0.png" alt=""></p>
+<p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/jrebel_demo_1.png" alt=""></p>
+<p>到此为止，热部署已经配置完成，每次代码修改再也不用痛苦地等IntelliJ重启啦！</p>
+<h1 id="痛点二-IntelliJ实例多开"><a href="#痛点二-IntelliJ实例多开" class="headerlink" title="痛点二: IntelliJ实例多开"></a>痛点二: IntelliJ实例多开</h1><p>之前已经提到过，默认IntelliJ中做插件开发时（同一个工程）只能启动一个Sandbox IntelliJ实例，但是我的需求需要两个以上的实例同时运行，一种比较笨的办法是把源码复制一遍作为另一个工程，但是这样两边代码同步会很麻烦。参考了一个外国人提出的<a href="https://intellij-support.jetbrains.com/hc/en-us/community/posts/206764005-Running-two-IDEA-instances-with-my-plugin" title="想法" target="_blank" rel="external">想法</a>，整理出一个可以方便地多开又不用维护多份代码的方法：</p>
+<p>（1）在当前编写插件的IntelliJ中New一个空项目，作为“<strong>镜像项目</strong>”：</p>
+<p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/double_instances_0.png" alt=""></p>
+<p>（2）在镜像项目中把原先的插件项目引入作为一个模块：</p>
+<p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/double_instances_1.png" alt=""></p>
+<p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/double_instances_2.png" alt=""></p>
+<p>（3）配置好镜像项目的编译版本（Java 8）</p>
+<p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/double_instances_3.png" alt=""></p>
+<p>（4）重点：新建一个新的SDK（必须跟之前用的区分开），并且sandbox home也要跟之前的SDK不一样。也就是说之后启动的两个Sandbox IntelliJ实例，都是在独立的Sandbox环境里</p>
+<p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/double_instances_4.png" alt=""></p>
+<p>（5）在Project页面指定好镜像项目使用的SDK为刚刚新建的SDK：</p>
+<p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/double_instances_5.png" alt=""></p>
+<p>（6）其它配置诸如Run Configuration、JRebel都是跟之前类似的，这里不再赘述。这样你就可以分别在原先项目的IntelliJ和镜像项目的IntelliJ中分别运行插件了！而且他们share同一份代码，你在任意一个地方改了，另一个地方也会更新到！</p>
+<p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/double_instances_9.png" alt=""></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2018/08/10/2018-08-10-fix-oom-on-toy-web-im - Copy/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="YellowB">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="YellowB's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/08/10/2018-08-10-fix-oom-on-toy-web-im - Copy/" itemprop="url">修复一个玩具性质WebIM系统OOM故障的过程与对IM系统设计的一些思考</a></h2>
         
 
         <div class="post-meta">
@@ -1714,138 +1882,6 @@ A8 OK SEARCH completed.
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yellowb.me/2017/08/09/2017-08-09-java-version-has-value-1.8-but-1.7-is-required/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="YellowB">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/uploads/avatar.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="YellowB's Blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h2 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/08/09/2017-08-09-java-version-has-value-1.8-but-1.7-is-required/" itemprop="url">Registry key Error Java version has value '1.8', but '1.7' is required</a></h2>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-09T11:27:33+08:00">
-                2017-08-09
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h1 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h1><p>公司最近把Java开发环境升级到Java8, 安装完JDK之后发现在cmd下运行java命令会报如下错误：</p>
-<blockquote>
-<p>Error: Registry key ‘Software\JavaSoft\Java Runtime Environment’\CurrentVersion’<br>has value ‘1.8’, but ‘1.7’ is required.<br>Error: could not find java.dll<br>Error: Could not find Java SE Runtime Environment.</p>
-</blockquote>
-<p>本地环境：</p>
-<blockquote>
-<p>OS：Win7_x64<br>JDK：JDK8u131_x64JDK：JDK8u131_x64</p>
-</blockquote>
-<h1 id="解决办法"><a href="#解决办法" class="headerlink" title="解决办法"></a>解决办法</h1><ol>
-<li>把环境变量<strong>Path</strong>中的这一项（若存在）删掉：<code>C:\ProgramData\Oracle\Java\javapath</code> 貌似这一项是公司预装的JRE自动升级所存放的地方。</li>
-<li>把<strong>C:\Windows\System32</strong>目录下的<code>java.exe</code>, <code>javaw.exe</code> 和 <code>javaws.exe</code> 删除。</li>
-<li>重新打开一个新的cmd, 验证结果。</li>
-</ol>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -1900,7 +1936,7 @@ A8 OK SEARCH completed.
           
             <div class="site-state-item site-state-posts">
               <a href="/archives/">
-                <span class="site-state-item-count">13</span>
+                <span class="site-state-item-count">14</span>
                 <span class="site-state-item-name">posts</span>
               </a>
             </div>
@@ -1913,7 +1949,7 @@ A8 OK SEARCH completed.
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">16</span>
+                <span class="site-state-item-count">18</span>
                 <span class="site-state-item-name">tags</span>
               </a>
             </div>
@@ -2001,7 +2037,7 @@ A8 OK SEARCH completed.
         <div class="copyright" >
   
   &copy; 
-  <span itemprop="copyrightYear">2018</span>
+  <span itemprop="copyrightYear">2019</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
