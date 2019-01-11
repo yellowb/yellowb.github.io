@@ -115,7 +115,7 @@
 <meta property="og:image" content="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/double_instances_4.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/double_instances_5.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/double_instances_9.png">
-<meta property="og:updated_time" content="2019-01-09T09:22:08.462Z">
+<meta property="og:updated_time" content="2019-01-11T02:56:19.048Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="IntelliJ插件开发环境搭建:代码热部署与多开实例">
 <meta name="twitter:description" content="摘要默认情况下的IntelliJ环境插件开发方式不支持在一个IDE中启动多个IntelliJ实例和代码热部署。本文着重解决以下2个问题：  如何便捷地在一个IDE中启动多个插件（IntelliJ）实例； 如何配置JRebel使得代码被修改后能热部署到运行的实例中，不须每次改完代码都重启实例。这里要求IntelliJ的版本不得比2018.1新，否则JRebel无法启动，原因后面会分析。  背景项目需">
@@ -408,6 +408,7 @@
 <p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/double_instances_5.png" alt=""></p>
 <p>（6）其它配置诸如Run Configuration、JRebel都是跟之前类似的，这里不再赘述。这样你就可以分别在原先项目的IntelliJ和镜像项目的IntelliJ中分别运行插件了！而且他们share同一份代码，你在任意一个地方改了，另一个地方也会更新到！</p>
 <p><img src="https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/double_instances_9.png" alt=""></p>
+<h1 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h1><p>如何打包发布自己的插件: <a href="https://juejin.im/post/5a5b0170f265da3e474459c2" target="_blank" rel="external">Link</a></p>
 
       
     </div>
@@ -625,7 +626,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#摘要"><span class="nav-number">1.</span> <span class="nav-text">摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#背景"><span class="nav-number">2.</span> <span class="nav-text">背景</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#项目需求"><span class="nav-number">2.1.</span> <span class="nav-text">项目需求</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#一些IntelliJ插件开发的基本概念"><span class="nav-number">2.2.</span> <span class="nav-text">一些IntelliJ插件开发的基本概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#待解决的痛点"><span class="nav-number">2.3.</span> <span class="nav-text">待解决的痛点</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#痛点一-代码热部署"><span class="nav-number">3.</span> <span class="nav-text">痛点一: 代码热部署</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#问题"><span class="nav-number">3.1.</span> <span class="nav-text">问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#正确配置步骤"><span class="nav-number">3.2.</span> <span class="nav-text">正确配置步骤</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#痛点二-IntelliJ实例多开"><span class="nav-number">4.</span> <span class="nav-text">痛点二: IntelliJ实例多开</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#摘要"><span class="nav-number">1.</span> <span class="nav-text">摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#背景"><span class="nav-number">2.</span> <span class="nav-text">背景</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#项目需求"><span class="nav-number">2.1.</span> <span class="nav-text">项目需求</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#一些IntelliJ插件开发的基本概念"><span class="nav-number">2.2.</span> <span class="nav-text">一些IntelliJ插件开发的基本概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#待解决的痛点"><span class="nav-number">2.3.</span> <span class="nav-text">待解决的痛点</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#痛点一-代码热部署"><span class="nav-number">3.</span> <span class="nav-text">痛点一: 代码热部署</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#问题"><span class="nav-number">3.1.</span> <span class="nav-text">问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#正确配置步骤"><span class="nav-number">3.2.</span> <span class="nav-text">正确配置步骤</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#痛点二-IntelliJ实例多开"><span class="nav-number">4.</span> <span class="nav-text">痛点二: IntelliJ实例多开</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Reference"><span class="nav-number">5.</span> <span class="nav-text">Reference</span></a></li></ol></div>
             
 
           </div>
