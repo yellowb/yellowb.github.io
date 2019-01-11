@@ -168,4 +168,5 @@ Caused by: compile error: getResource(java.lang.String,boolean) not found in com
 
 ![](https://raw.githubusercontent.com/yellowb/yellowb.github.io/hexo/source/uploads/20190109/double_instances_9.png)
 
-
+# Reference
+如何打包发布自己的插件: [Link](https://juejin.im/post/5a5b0170f265da3e474459c2)
